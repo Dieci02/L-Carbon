@@ -1,0 +1,2300 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Carbon — One Element, Many Possibilities</title>
+<meta name="description" content="An interactive exhibition of carbon. Eleven structural states, every atom generated procedurally at runtime — no models, no textures, no image assets.">
+<meta name="theme-color" content="#000000">
+<meta name="color-scheme" content="dark">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%23000'/%3E%3Cpath d='M16 6.2l8.49 4.9v9.8L16 25.8l-8.49-4.9v-9.8z' fill='none' stroke='%23E8E9EB' stroke-width='1.5'/%3E%3Ccircle cx='16' cy='16' r='1.9' fill='%23E8E9EB'/%3E%3C/svg%3E">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Carbon — One Element, Many Possibilities">
+<meta property="og:description" content="Eleven structural states of carbon, generated procedurally at runtime. Start with one atom and choose what it becomes.">
+<meta property="og:image" content="preview.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Carbon — One Element, Many Possibilities">
+<meta name="twitter:description" content="Eleven structural states of carbon, generated procedurally at runtime.">
+<meta name="twitter:image" content="preview.png">
+<style>
+:root{
+  --fg:#F1F2F4; --fg2:#ADAFB4; --fg3:#74767B;
+  --ease:cubic-bezier(.32,.72,0,1);
+  --sans:-apple-system,"SF Pro Display",BlinkMacSystemFont,"Inter","Helvetica Neue",system-ui,sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;overflow:hidden;background:#000}
+body{
+  font-family:var(--sans);color:var(--fg);
+  -webkit-font-smoothing:antialiased;
+  cursor:grab;
+}
+body.turning{cursor:grabbing}
+::selection{background:rgba(255,255,255,.12)}
+
+#stage{position:fixed;inset:0;width:100%;height:100%;display:block;z-index:1}
+
+/* the room the specimen stands in: black, with the faintest breath of haze */
+.air{position:fixed;inset:0;pointer-events:none}
+#haze{z-index:2;
+  background:
+    radial-gradient(46vmax 40vmax at 38% 30%,rgba(122,140,170,.070),transparent 66%),
+    radial-gradient(60vmax 52vmax at 66% 76%,rgba(70,84,108,.045),transparent 70%);
+  animation:breathe 44s var(--ease) infinite alternate}
+@keyframes breathe{
+  0%{opacity:.72;transform:translate3d(-1%,0,0) scale(1)}
+  100%{opacity:1;transform:translate3d(1.5%,-1%,0) scale(1.08)}
+}
+#falloff{z-index:3;background:radial-gradient(112% 86% at 50% 46%,transparent 34%,#000 100%)}
+/* keeps the plaque legible when the specimen behind it is bright */
+#scrim{z-index:4;background:
+  radial-gradient(66vmax 50vmax at -4% 106%,rgba(0,0,0,.66),rgba(0,0,0,0) 62%),
+  linear-gradient(to top,rgba(0,0,0,.30),rgba(0,0,0,0) 24%)}
+#grain{z-index:6;opacity:.045;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")}
+
+/* the plaque */
+.plaque{position:fixed;left:clamp(26px,5vw,72px);bottom:clamp(26px,6vh,68px);z-index:5;
+  pointer-events:none;max-width:min(31ch,66vw);opacity:1;
+  text-shadow:0 1px 26px rgba(0,0,0,.9),0 0 6px rgba(0,0,0,.5);
+  transition:opacity .55s var(--ease)}
+.plaque.hid{opacity:0}
+.plaque .over{font-size:11.5px;letter-spacing:.34em;text-transform:uppercase;color:var(--fg3);font-weight:450}
+.plaque .rule{width:36px;height:1px;background:rgba(255,255,255,.26);margin:16px 0}
+.plaque h1{font-weight:250;font-size:clamp(31px,3.5vw,48px);letter-spacing:-.025em;line-height:1.1}
+.plaque .no{display:block;font-size:11.5px;letter-spacing:.34em;text-transform:uppercase;
+  color:var(--fg2);margin-bottom:13px;font-weight:450}
+.plaque .spec{margin-top:15px;font-size:10.5px;letter-spacing:.2em;text-transform:uppercase;
+  color:var(--fg3);font-weight:450;line-height:1.95}
+.plaque p{margin-top:15px;font-size:15px;line-height:1.7;color:var(--fg2);font-weight:340}
+
+/* the one control a chapter is allowed */
+.ctrl{margin-top:28px;width:min(232px,54vw);pointer-events:auto;
+  opacity:1;transition:opacity .9s var(--ease)}
+.ctrl[hidden]{display:none}
+.ctrl .lab{display:flex;justify-content:space-between;gap:14px;margin-bottom:13px;
+  font-size:10.5px;letter-spacing:.28em;text-transform:uppercase;color:var(--fg3);font-weight:450}
+.ctrl .lab b{font-weight:450;color:var(--fg2)}
+.ctrl input{-webkit-appearance:none;appearance:none;width:100%;height:16px;background:transparent;
+  cursor:ew-resize;outline:none;display:block}
+.ctrl input{height:20px}
+.ctrl input::-webkit-slider-runnable-track{height:20px;background:
+  repeating-linear-gradient(to right,rgba(255,255,255,.30) 0 1px,transparent 1px 11px)
+    left center/100% 8px no-repeat,
+  linear-gradient(rgba(255,255,255,.17),rgba(255,255,255,.17)) left center/100% 1px no-repeat}
+.ctrl input::-webkit-slider-thumb{-webkit-appearance:none;width:11px;height:11px;border-radius:50%;
+  background:var(--fg);margin-top:4.5px;
+  box-shadow:0 0 0 4px rgba(255,255,255,.10),0 0 14px 2px rgba(255,255,255,.30);
+  transition:transform .3s var(--ease),box-shadow .3s var(--ease)}
+.ctrl input:hover::-webkit-slider-thumb{transform:scale(1.28);
+  box-shadow:0 0 0 6px rgba(255,255,255,.14),0 0 20px 4px rgba(255,255,255,.45)}
+.ctrl input:active::-webkit-slider-thumb{transform:scale(1.1)}
+.ctrl input:focus-visible::-webkit-slider-thumb{box-shadow:0 0 0 6px rgba(255,255,255,.22)}
+.ctrl input::-moz-range-track{height:20px;background:
+  repeating-linear-gradient(to right,rgba(255,255,255,.30) 0 1px,transparent 1px 11px)
+    left center/100% 8px no-repeat,
+  linear-gradient(rgba(255,255,255,.17),rgba(255,255,255,.17)) left center/100% 1px no-repeat}
+.ctrl input::-moz-range-thumb{border:0;width:11px;height:11px;border-radius:50%;background:var(--fg);
+  box-shadow:0 0 0 4px rgba(255,255,255,.10),0 0 14px 2px rgba(255,255,255,.30)}
+/* it breathes until it has been touched, then stops asking */
+@keyframes nudge{0%,100%{opacity:.7}50%{opacity:1}}
+.ctrl.hint{animation:nudge 3.4s var(--ease) infinite}
+@media (min-width:901px){
+  .ctrl{position:fixed;left:50%;bottom:clamp(28px,5vh,54px);transform:translateX(-50%);
+    width:min(300px,32vw);margin-top:0}
+  .ctrl .lab{justify-content:center;gap:18px}
+}
+
+/* what carbon can become next, placed around it */
+#orbit{position:fixed;inset:0;z-index:5;pointer-events:none}
+#orbit .node{position:absolute;display:flex;align-items:center;gap:9px;
+  background:none;border:0;margin:0;padding:10px 4px;font:inherit;cursor:pointer;
+  pointer-events:auto;color:var(--fg3);
+  font-size:10.5px;letter-spacing:.2em;text-transform:uppercase;font-weight:450;
+  opacity:0;transition:opacity 1.1s var(--ease),color .55s var(--ease)}
+body.revealed #orbit .node{opacity:1}
+body:not(.revealed) #rail{opacity:0}
+#orbit.busy .node,#orbit.picking .node:not(.chosen){opacity:0!important;pointer-events:none}
+#orbit .node:hover,#orbit .node:focus-visible,#orbit .node.chosen{color:var(--fg)}
+#orbit .node svg{width:17px;height:17px;flex:none;opacity:.8;
+  transition:opacity .55s var(--ease),transform .5s var(--ease),filter .5s var(--ease)}
+body.revealed #orbit .node svg{animation:live 5.4s var(--ease) infinite}
+@keyframes live{0%,100%{opacity:.66}50%{opacity:1}}
+#orbit .node:hover svg,#orbit .node:focus-visible svg,#orbit .node.chosen svg{
+  opacity:1;transform:scale(1.16);filter:drop-shadow(0 0 7px rgba(255,255,255,.55));animation:none}
+#orbit .node:active svg{transform:scale(.96);transition-duration:.1s}
+/* a filament from each possibility back to the structure it would come from */
+#orbit .node::after{content:'';position:absolute;opacity:.3;pointer-events:none;
+  transition:opacity .6s var(--ease),width .6s var(--ease),height .6s var(--ease)}
+#orbit .up::after{left:50%;top:100%;width:1px;height:30px;transform:translateX(-50%);
+  background:linear-gradient(to bottom,rgba(255,255,255,.65),transparent)}
+#orbit .down::after{left:50%;bottom:100%;width:1px;height:30px;transform:translateX(-50%);
+  background:linear-gradient(to top,rgba(255,255,255,.65),transparent)}
+#orbit .left::after{left:100%;top:50%;height:1px;width:34px;transform:translateY(-50%);
+  background:linear-gradient(to right,rgba(255,255,255,.65),transparent)}
+#orbit .right::after{right:100%;top:50%;height:1px;width:34px;transform:translateY(-50%);
+  background:linear-gradient(to left,rgba(255,255,255,.65),transparent)}
+#orbit .node:hover::after,#orbit .node:focus-visible::after{opacity:.9}
+#orbit .up:hover::after,#orbit .down:hover::after{height:52px}
+#orbit .left:hover::after,#orbit .right:hover::after{width:60px}
+#orbit .node .lab{white-space:nowrap;text-shadow:0 1px 22px rgba(0,0,0,.92)}
+#orbit .up{left:50%;top:12%;transform:translateX(-50%);flex-direction:column;gap:8px}
+#orbit .down{left:50%;top:79%;transform:translateX(-50%);flex-direction:column;gap:8px}
+#orbit .left{left:4.5%;top:24%}
+#orbit .right{right:4.5%;top:24%;flex-direction:row-reverse}
+
+/* narrow screens keep the list; there is no room for a ring */
+.choices{margin-top:26px;display:none;flex-direction:column;gap:12px;pointer-events:auto}
+@media (max-width:900px){#orbit{display:none}body.revealed .choices{display:flex}}
+.choices button{all:unset;cursor:pointer;display:flex;align-items:center;gap:13px;
+  font-size:12.5px;letter-spacing:.035em;font-weight:340;color:var(--fg2);
+  transition:color .5s var(--ease)}
+.choices .k{width:14px;height:1px;flex:none;background:rgba(255,255,255,.32);
+  transition:width .5s var(--ease),background .5s var(--ease)}
+.choices button:hover,.choices button:focus-visible{color:var(--fg)}
+.choices button:hover .k,.choices button:focus-visible .k{width:26px;background:var(--fg)}
+
+/* the carbon map: a state diagram, not a menu */
+#rail{position:fixed;right:clamp(18px,2.6vw,42px);top:50%;transform:translateY(-50%);z-index:5;
+  width:170px;height:275px;pointer-events:none}
+#rail svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
+#rail path{fill:none;stroke:rgba(255,255,255,.09);stroke-width:1;
+  transition:stroke 1s var(--ease)}
+#rail path.on{stroke:rgba(255,255,255,.30)}
+#rail path.flash{animation:trace 1.5s var(--ease)}
+@keyframes trace{0%{stroke:rgba(255,255,255,.92)}100%{stroke:rgba(255,255,255,.30)}}
+#rail .node{position:absolute;transform:translateY(-50%);display:flex;align-items:center;gap:10px;
+  background:none;border:0;margin:0;padding:5px 0;font:inherit;color:var(--fg3);
+  pointer-events:none;cursor:default}
+#rail .node.link{pointer-events:auto;cursor:pointer}
+#rail .dot{width:7px;height:7px;border-radius:50%;flex:none;background:none;
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.13);
+  transition:box-shadow .9s var(--ease)}
+#rail .n{font-size:9.5px;letter-spacing:.2em;text-transform:uppercase;font-weight:450;
+  white-space:nowrap;opacity:0;text-shadow:0 1px 18px rgba(0,0,0,.92);
+  transition:opacity 1s var(--ease),color 1s var(--ease)}
+#rail .node.seen .dot{box-shadow:inset 0 0 0 4px rgba(255,255,255,.46)}
+#rail .node.seen .n{opacity:.5}
+#rail .node.near .dot{box-shadow:inset 0 0 0 1px rgba(255,255,255,.5)}
+#rail .node.near .n{opacity:.3}
+#rail .node.link:hover .n{opacity:.85}
+#rail .node.on .dot{box-shadow:inset 0 0 0 4px #fff,0 0 0 3px rgba(255,255,255,.12),
+  0 0 15px 2px rgba(255,255,255,.34);animation:bead 4.6s var(--ease) infinite}
+@keyframes bead{0%,100%{box-shadow:inset 0 0 0 4px #fff,0 0 0 3px rgba(255,255,255,.10),0 0 13px 2px rgba(255,255,255,.26)}
+  50%{box-shadow:inset 0 0 0 4px #fff,0 0 0 5px rgba(255,255,255,.16),0 0 20px 4px rgba(255,255,255,.44)}}
+#rail .node.on .n{opacity:1;color:var(--fg)}
+
+.credit{position:fixed;right:clamp(26px,5vw,72px);bottom:clamp(26px,6vh,68px);z-index:5;
+  pointer-events:none;text-align:right;
+  font-size:10.5px;letter-spacing:.26em;text-transform:uppercase;color:#585A5F;line-height:2.1;
+  text-shadow:0 1px 20px rgba(0,0,0,.9)}
+
+/* everything enters once, slowly */
+.fade{opacity:0;transform:translateY(14px);
+  transition:opacity 2.4s var(--ease),transform 2.4s var(--ease)}
+.ready .fade{opacity:1;transform:none}
+.ready .plaque .over{transition-delay:.35s}
+.ready .plaque .rule{transition-delay:.5s}
+.ready .plaque h1{transition-delay:.62s}
+.ready .plaque p{transition-delay:.78s}
+.ready .ctrl{transition-delay:.9s}
+.ready #rail{transition-delay:1s}
+.ready .credit{transition-delay:1.1s}
+#stage{opacity:0;transition:opacity 3s var(--ease)}
+.ready #stage{opacity:1}
+
+/* while the field is being solved */
+#wait{position:fixed;inset:0;z-index:7;display:grid;place-items:center;
+  background:#000;transition:opacity 1.2s var(--ease)}
+#wait.gone{opacity:0;pointer-events:none}
+#wait span{font-size:11px;letter-spacing:.34em;text-transform:uppercase;color:#55575B;
+  animation:pulse 3.4s var(--ease) infinite}
+@keyframes pulse{0%,100%{opacity:.35}50%{opacity:1}}
+
+@media (max-width:760px){
+  .plaque{max-width:74vw;bottom:clamp(22px,4vh,40px)}
+  .choices{gap:9px;margin-top:20px}
+  .choices button{font-size:12px}
+  .plaque p{font-size:14px;margin-top:15px}
+  .credit{display:none}
+  #rail{gap:13px}
+}
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.001ms!important;transition-duration:.001ms!important}
+}
+</style>
+</head>
+<body>
+
+<canvas id="stage"></canvas>
+<div class="air" id="haze"></div>
+<div class="air" id="falloff"></div>
+<div class="air" id="scrim"></div>
+
+<div id="orbit" aria-label="Possible transformations"></div>
+
+<div class="plaque" id="plaque">
+  <div class="over fade">One element, many possibilities</div>
+  <div class="rule fade"></div>
+  <h1 class="fade"><span class="no" id="chNo">Chapter I</span><span id="chTitle">Carbon</span></h1>
+  <div class="spec fade" id="chSpec"></div>
+  <p class="fade" id="chText">Everything begins here.</p>
+  <div class="ctrl fade" id="ctrl" hidden>
+    <div class="lab"><span id="ctrlName">Energy</span><b id="ctrlVal"></b></div>
+    <input id="ctrlRange" type="range" min="0" max="1" step="0.0005" value="0.5" aria-label="State control">
+  </div>
+  <div class="choices fade" id="choices"></div>
+</div>
+
+<nav id="rail" class="fade" aria-label="Carbon map"></nav>
+
+<div class="credit fade">
+  Ten states of carbon<br>
+  Generated at runtime
+</div>
+
+<div class="air" id="grain"></div>
+<div id="wait"><span>Solving the field</span></div>
+
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js" crossorigin="anonymous"></script>
+<script>/* if the CDN is blocked or offline, fall back to the copy in this repo */
+window.THREE || document.write('<scr' + 'ipt src="vendor/three.min.js"><\/scr' + 'ipt>');</script>
+<script>
+'use strict';
+(() => {
+if (!window.THREE) { document.getElementById('wait').textContent = 'unavailable'; return; }
+
+const canvas = document.getElementById('stage');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false, powerPreference: 'high-performance' });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.outputEncoding = THREE.sRGBEncoding;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.12;
+renderer.setClearColor(0x000000, 1);
+renderer.sortObjects = true;
+
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(28, 1, 0.08, 120);
+const pivot = new THREE.Group();
+scene.add(pivot);
+scene.fog = new THREE.FogExp2(0x000000, 0);   // always present, so density can be eased
+let studio = null;
+
+/* ---------------------------------------------------------------------------
+   THE STUDIO
+   Painted, not photographed. A dark room with three soft sources standing in
+   it: one large key above and to the left, a cool slash of rim behind to the
+   right, a low warm fill. Nothing is imported. But a polished surface needs
+   something to reflect before its highlights can describe its geometry, and
+   these are the same three lights, given shape.
+   ------------------------------------------------------------------------- */
+{
+  const W = 1024, H = 512;
+  const c = document.createElement('canvas');
+  c.width = W; c.height = H;
+  const x = c.getContext('2d');
+
+  const wall = x.createLinearGradient(0, 0, 0, H);
+  wall.addColorStop(0, '#0c0e11');
+  wall.addColorStop(.46, '#050608');
+  wall.addColorStop(.80, '#020203');
+  wall.addColorStop(1, '#060709');
+  x.fillStyle = wall;
+  x.fillRect(0, 0, W, H);
+
+  // drawn three times over so a source never breaks at the horizontal seam
+  const pool = (u, v, rx, ry, colour, alpha) => {
+    x.globalAlpha = alpha;
+    x.globalCompositeOperation = 'lighter';
+    for (const cx of [u * W - W, u * W, u * W + W]) {
+      const g = x.createRadialGradient(cx, v * H, 0, cx, v * H, rx * H);
+      g.addColorStop(0, colour);
+      g.addColorStop(1, 'rgba(0,0,0,0)');
+      x.fillStyle = g;
+      x.save();
+      x.translate(cx, v * H);
+      x.scale(1, ry);
+      x.beginPath();
+      x.arc(0, 0, rx * H, 0, 6.2832);
+      x.fill();
+      x.restore();
+    }
+    x.globalAlpha = 1;
+    x.globalCompositeOperation = 'source-over';
+  };
+  pool(.30, .14, .30, .80, '#ffffff', 1);        // key
+  pool(.30, .14, .13, .55, '#ffffff', 1);        // its hot core
+  pool(.76, .38, .17, 1.5, '#bcd4ff', .95);      // cool rim
+  pool(.05, .66, .20, .80, '#ffc98e', .40);      // warm fill
+
+  // the horizon every polished facet catches as it turns
+  x.globalCompositeOperation = 'lighter';
+  const hz = x.createLinearGradient(0, H * .52, 0, H * .60);
+  hz.addColorStop(0, 'rgba(0,0,0,0)');
+  hz.addColorStop(.5, 'rgba(150,170,205,.5)');
+  hz.addColorStop(1, 'rgba(0,0,0,0)');
+  x.fillStyle = hz;
+  x.fillRect(0, H * .52, W, H * .08);
+  x.globalCompositeOperation = 'source-over';
+
+  const tex = new THREE.CanvasTexture(c);
+  tex.encoding = THREE.sRGBEncoding;
+  tex.mapping = THREE.EquirectangularReflectionMapping;
+  tex.wrapS = THREE.RepeatWrapping;
+  tex.generateMipmaps = false;
+  tex.minFilter = THREE.LinearFilter;
+  studio = tex;                      // kept: Chapter X samples the room by hand
+  try {
+    const pm = new THREE.PMREMGenerator(renderer);
+    const t = pm.fromEquirectangular(tex);
+    if (t && t.texture) scene.environment = t.texture;
+    pm.dispose();
+  } catch (e) {
+    scene.environment = tex;
+  }
+}
+
+const light = (c, i, x, y, z) => {
+  const l = new THREE.DirectionalLight(c, i);
+  l.position.set(x, y, z);
+  return l;
+};
+scene.add(
+  light(0xfff4e8, 1.15, 2.4, 4.6, 2.6),                     // key
+  light(0x8fb4ff, 0.75, -3.6, 1.4, -2.6),                   // cool rim
+  light(0xffd2a0, 0.30, 2.6, -2.2, 2.4),                    // warm fill
+  new THREE.HemisphereLight(0x39434f, 0x090a0c, 0.35));     // so nothing goes pure black
+
+/* ---------------------------------------------------------------------------
+   INSTRUMENTS
+   Small shared tools. Every chapter is built from these, so the exhibition
+   speaks one material language throughout.
+   ------------------------------------------------------------------------- */
+
+const T = {
+  a: new THREE.Vector3(), b: new THREE.Vector3(), c: new THREE.Vector3(),
+  q: new THREE.Quaternion(), m: new THREE.Matrix4(), s: new THREE.Vector3(),
+  up: new THREE.Vector3(0, 1, 0), id: new THREE.Quaternion()
+};
+const clamp = (v, a, b) => v < a ? a : v > b ? b : v;
+const lerp = (a, b, k) => a + (b - a) * k;
+const smooth = k => { k = clamp(k, 0, 1); return k * k * (3 - 2 * k); };
+const smoother = k => { k = clamp(k, 0, 1); return k * k * k * (k * (k * 6 - 15) + 10); };
+const approach = (v, t, rate, dt) => v + (t - v) * (1 - Math.exp(-rate * dt));
+// critically damped: starts from rest, arrives without overshoot
+function spring(o, k, target, w, dt) {
+  const vk = k + '$v';
+  o[vk] = (o[vk] || 0) + (w * w * (target - o[k]) - 2.05 * w * (o[vk] || 0)) * dt;
+  o[k] += o[vk] * dt;
+}
+const rng = s => () => (s = s * 1664525 + 1013904223 | 0, (s >>> 8) / 16777216);
+
+const _geo = {};
+const ball = d => _geo['b' + d] || (_geo['b' + d] = new THREE.IcosahedronGeometry(1, d));
+const rod = s => _geo['r' + s] || (_geo['r' + s] = new THREE.CylinderGeometry(1, 1, 1, s, 1, true));
+
+// the exhibition's carbon: dense, nearly matte, a single disciplined highlight
+const carbon = (o = {}) => new THREE.MeshPhysicalMaterial(Object.assign({
+  color: 0x14171c, roughness: 0.42, metalness: 0.06,
+  clearcoat: 0.85, clearcoatRoughness: 0.26,
+  envMapIntensity: 1.5, transparent: true, opacity: 1
+}, o));
+
+const linkMat = (o = {}) => new THREE.MeshStandardMaterial(Object.assign({
+  color: 0x1b1f26, roughness: 0.5, metalness: 0.1,
+  envMapIntensity: 1.25, transparent: true, opacity: 1
+}, o));
+
+function atomAt(im, i, p, r) {
+  T.m.compose(p, T.id, T.s.set(r, r, r));
+  im.setMatrixAt(i, T.m);
+}
+function bondAt(im, i, a, b, r) {
+  T.a.subVectors(b, a);
+  const len = T.a.length() || 1e-6;
+  T.q.setFromUnitVectors(T.up, T.a.divideScalar(len));
+  T.b.addVectors(a, b).multiplyScalar(0.5);
+  T.m.compose(T.b, T.q, T.s.set(r, len, r));
+  im.setMatrixAt(i, T.m);
+}
+
+// neighbour search on a hash grid — every lattice in the exhibition uses it
+function findBonds(pts, maxD) {
+  const cell = maxD, grid = new Map(), out = [];
+  const key = (i, j, k) => i + ':' + j + ':' + k;
+  pts.forEach((p, i) => {
+    const k = key(Math.floor(p.x / cell), Math.floor(p.y / cell), Math.floor(p.z / cell));
+    let a = grid.get(k); if (!a) grid.set(k, a = []);
+    a.push(i);
+  });
+  const d2 = maxD * maxD;
+  pts.forEach((p, i) => {
+    const gi = Math.floor(p.x / cell), gj = Math.floor(p.y / cell), gk = Math.floor(p.z / cell);
+    for (let a = -1; a <= 1; a++) for (let b = -1; b <= 1; b++) for (let c = -1; c <= 1; c++) {
+      const list = grid.get(key(gi + a, gj + b, gk + c));
+      if (!list) continue;
+      for (const j of list) if (j > i && p.distanceToSquared(pts[j]) < d2) out.push([i, j]);
+    }
+  });
+  return out;
+}
+
+/* Filaments. A bond drawn the way a constellation map draws a line: a single
+   hair of light, bowed very slightly off the straight, at its thinnest and
+   dimmest where it meets an atom. The cross-section is a triangle because at
+   this diameter nothing wider is distinguishable, and it keeps the count low
+   enough to draw thousands of them. */
+function filaments(pairs, pts, o) {
+  const RS = 3, SEG = 6, RINGS = SEG + 1, n = pairs.length;
+  const rMax = o.radius, bow = o.bow;
+  const pos = new Float32Array(n * RINGS * RS * 3);
+  const col = new Float32Array(n * RINGS * RS * 3);
+  const IDX = n * RINGS * RS > 65535 ? Uint32Array : Uint16Array;
+  const idx = new IDX(n * SEG * RS * 6);
+  const A = new THREE.Vector3(), B = new THREE.Vector3(), C = new THREE.Vector3();
+  const P = new THREE.Vector3(), G = new THREE.Vector3();
+  const N1 = new THREE.Vector3(), N2 = new THREE.Vector3(), W = new THREE.Vector3();
+  let v = 0, f = 0;
+  for (let k = 0; k < n; k++) {
+    A.copy(pts[pairs[k][0]]); B.copy(pts[pairs[k][1]]);
+    W.subVectors(B, A);
+    const L = W.length() || 1e-6;
+    // the bow stays in the plane of the layer, so the sheet is still flat
+    N2.set(W.z, 0, -W.x);
+    if (N2.lengthSq() < 1e-9) N2.set(1, 0, 0);            // a vertical bond has no in-plane normal
+    N2.normalize();
+    const sign = ((pairs[k][0] + pairs[k][1]) & 1) ? 1 : -1;
+    C.addVectors(A, B).multiplyScalar(0.5).addScaledVector(N2, L * bow * sign);
+    const base = k * RINGS * RS;
+    for (let i = 0; i < RINGS; i++) {
+      const t = i / SEG, mt = 1 - t, s = Math.sin(Math.PI * t);
+      P.set(mt * mt * A.x + 2 * mt * t * C.x + t * t * B.x,
+            mt * mt * A.y + 2 * mt * t * C.y + t * t * B.y,
+            mt * mt * A.z + 2 * mt * t * C.z + t * t * B.z);
+      G.set(mt * (C.x - A.x) + t * (B.x - C.x),
+            mt * (C.y - A.y) + t * (B.y - C.y),
+            mt * (C.z - A.z) + t * (B.z - C.z)).normalize();
+      N1.set(Math.abs(G.y) > 0.999 ? 1 : 0, Math.abs(G.y) > 0.999 ? 0 : 1, 0);
+      N2.crossVectors(G, N1).normalize();
+      N1.crossVectors(N2, G).normalize();
+      const r = rMax * (0.20 + 0.80 * Math.pow(s, 0.62));
+      const bright = 0.22 + 0.78 * Math.pow(s, 0.5);
+      for (let j = 0; j < RS; j++) {
+        const ang = j / RS * 6.2831853, cx = Math.cos(ang) * r, cy = Math.sin(ang) * r;
+        pos[v * 3]     = P.x + N1.x * cx + N2.x * cy;
+        pos[v * 3 + 1] = P.y + N1.y * cx + N2.y * cy;
+        pos[v * 3 + 2] = P.z + N1.z * cx + N2.z * cy;
+        col[v * 3] = col[v * 3 + 1] = col[v * 3 + 2] = bright;
+        v++;
+      }
+    }
+    for (let i = 0; i < SEG; i++) for (let j = 0; j < RS; j++) {
+      const a = base + i * RS + j, b = base + i * RS + (j + 1) % RS;
+      idx[f++] = a; idx[f++] = a + RS; idx[f++] = b;
+      idx[f++] = b; idx[f++] = a + RS; idx[f++] = b + RS;
+    }
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+  g.setAttribute('color', new THREE.BufferAttribute(col, 3));
+  g.setIndex(new THREE.BufferAttribute(idx, 1));
+  g.computeVertexNormals();
+  return g;
+}
+
+// the edge that lets an object separate from the darkness behind it
+function rimShell(radius, colour, power, strength) {
+  const m = new THREE.ShaderMaterial({
+    transparent: true, blending: THREE.AdditiveBlending, depthWrite: false,
+    side: THREE.BackSide, fog: false,
+    uniforms: {
+      uColor: { value: new THREE.Color(colour) },
+      uPow: { value: power }, uStr: { value: strength }, uFade: { value: 1 }
+    },
+    vertexShader: `varying vec3 vN; varying vec3 vV;
+      void main(){ vec4 mv = modelViewMatrix * vec4(position,1.0);
+        vN = normalize(normalMatrix * normal); vV = normalize(-mv.xyz);
+        gl_Position = projectionMatrix * mv; }`,
+    fragmentShader: `uniform vec3 uColor; uniform float uPow,uStr,uFade;
+      varying vec3 vN; varying vec3 vV;
+      void main(){ float f = pow(1.0 - abs(dot(normalize(vN), normalize(vV))), uPow);
+        gl_FragColor = vec4(uColor * f * uStr * uFade, 1.0); }`
+  });
+  return new THREE.Mesh(new THREE.SphereGeometry(radius, 72, 54), m);
+}
+
+function fadeGroup(g, k) {
+  g.traverse(o => {
+    const ms = o.material ? (Array.isArray(o.material) ? o.material : [o.material]) : null;
+    if (!ms) return;
+    for (const m of ms) {
+      if (m.uniforms && m.uniforms.uFade) { m.uniforms.uFade.value = k; continue; }
+      if (m.userData.base === undefined) m.userData.base = m.opacity;
+      m.transparent = true;
+      m.opacity = m.userData.base * k;
+    }
+  });
+}
+function disposeGroup(g) {
+  g.traverse(o => {
+    if (o.geometry && !Object.values(_geo).includes(o.geometry)) o.geometry.dispose();
+    const ms = o.material ? (Array.isArray(o.material) ? o.material : [o.material]) : [];
+    for (const m of ms) m.dispose();
+  });
+  if (g.parent) g.parent.remove(g);
+}
+
+/* ---------------------------------------------------------------------------
+   THE AIR OF THE ROOM
+   A very sparse field of suspended dust. It belongs to the room, not to any
+   one chapter, and it is what gives the darkness a depth to sit in.
+   ------------------------------------------------------------------------- */
+const dust = (() => {
+  const N = 900, r = rng(20240611);
+  const pos = new Float32Array(N * 3), size = new Float32Array(N), ph = new Float32Array(N);
+  for (let i = 0; i < N; i++) {
+    const u = r() * 2 - 1, th = r() * 6.2832, rad = 3.2 + Math.pow(r(), .55) * 12;
+    const s = Math.sqrt(1 - u * u);
+    pos[i * 3] = Math.cos(th) * s * rad;
+    pos[i * 3 + 1] = u * rad * 0.72;
+    pos[i * 3 + 2] = Math.sin(th) * s * rad;
+    size[i] = 0.5 + r() * 1.6;
+    ph[i] = r() * 6.2832;
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+  g.setAttribute('aSize', new THREE.BufferAttribute(size, 1));
+  g.setAttribute('aPhase', new THREE.BufferAttribute(ph, 1));
+  const m = new THREE.ShaderMaterial({
+    transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, fog: false,
+    uniforms: { uTime: { value: 0 }, uFade: { value: 0 }, uPix: { value: renderer.getPixelRatio() } },
+    vertexShader: `attribute float aSize; attribute float aPhase;
+      uniform float uTime, uPix; varying float vTw;
+      void main(){
+        vec3 p = position;
+        p.x += sin(uTime*0.07 + aPhase)*0.5;
+        p.y += cos(uTime*0.055 + aPhase*1.7)*0.42;
+        p.z += sin(uTime*0.063 + aPhase*2.3)*0.5;
+        vec4 mv = modelViewMatrix * vec4(p,1.0);
+        gl_PointSize = aSize * uPix * (26.0 / max(0.2, -mv.z));
+        vTw = 0.35 + 0.65 * (0.5 + 0.5*sin(uTime*0.5 + aPhase*3.1));
+        gl_Position = projectionMatrix * mv;
+      }`,
+    fragmentShader: `uniform float uFade; varying float vTw;
+      void main(){
+        float d = length(gl_PointCoord - 0.5);
+        float a = smoothstep(0.5, 0.02, d);
+        gl_FragColor = vec4(vec3(0.60,0.67,0.80), a * vTw * uFade * 0.42);
+      }`
+  });
+  const p = new THREE.Points(g, m);
+  p.frustumCulled = false;
+  scene.add(p);
+  return p;
+})();
+
+/* the pool of shadow a floating object stands over */
+const shadow = (() => {
+  const c = document.createElement('canvas');
+  c.width = c.height = 256;
+  const x = c.getContext('2d');
+  const g = x.createRadialGradient(128, 128, 0, 128, 128, 128);
+  g.addColorStop(0, 'rgba(0,0,0,.85)');
+  g.addColorStop(.42, 'rgba(0,0,0,.36)');
+  g.addColorStop(1, 'rgba(0,0,0,0)');
+  x.fillStyle = g;
+  x.fillRect(0, 0, 256, 256);
+  const m = new THREE.Mesh(
+    new THREE.PlaneGeometry(5.4, 5.4),
+    new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(c), transparent: true, opacity: .75, depthWrite: false, fog: false })
+  );
+  m.rotation.x = -Math.PI / 2;
+  m.position.y = -1.7;
+  m.renderOrder = -1;
+  m.visible = false;
+  scene.add(m);
+  return m;
+})();
+
+/* ===========================================================================
+   THE CHAPTERS
+   Each returns { group, update?, control?, camera? }. Nothing else.
+   ========================================================================= */
+const CH = [];
+
+/* ---------------------------------------------------------------------------
+   I — CARBON
+   One atom. It does nothing. That is the whole point of the chapter: the
+   viewer is asked to look at a single sphere until they accept that
+   everything that follows is only this, repeated.
+   ------------------------------------------------------------------------- */
+CH.push({
+  no: 'I', title: 'Carbon',
+  text: 'One atom. Everything that follows is only this, arranged.',
+  dist: 8.2, pitch: 0.14, spin: 0.045, dust: 1, shadow: true,
+  build() {
+    const g = new THREE.Group();
+    const m = carbon({ roughness: 0.36, clearcoat: 0.9, clearcoatRoughness: 0.2, envMapIntensity: 1.7 });
+    g.add(new THREE.Mesh(new THREE.SphereGeometry(1.15, 128, 96), m));
+    const rim = rimShell(1.168, 0x7f9ad0, 3.4, 0.5);
+    g.add(rim);
+    return {
+      group: g,
+      update(dt, t) { rim.material.uniforms.uStr.value = 0.5 + 0.06 * Math.sin(t * 0.31); }
+    };
+  }
+});
+
+/* ---------------------------------------------------------------------------
+   II — ELECTRON DENSITY
+   Not a diagram of orbits. The cloud is raymarched from an analytic density:
+   a tight core, a valence shell, and four tetrahedral lobes — the shape that
+   will still be there, hardened, in Chapter IX.
+   ------------------------------------------------------------------------- */
+CH.push({
+  no: 'II', title: 'Electron Density',
+  text: 'The electron has no path. Only a likelihood of being found.',
+  dist: 9.4, pitch: 0.17, spin: 0.038, dust: .5,
+  control: { name: 'Energy', value: 0.3, fmt: v => (v * 100).toFixed(0) + '%' },
+  build() {
+    const g = new THREE.Group();
+    const R = 2.3;
+    const mat = new THREE.ShaderMaterial({
+      transparent: true, blending: THREE.AdditiveBlending, depthWrite: false,
+      side: THREE.FrontSide, fog: false,
+      uniforms: {
+        uCam: { value: new THREE.Vector3() }, uTime: { value: 0 },
+        uEnergy: { value: 0.75 }, uFade: { value: 1 }
+      },
+      vertexShader: `varying vec3 vP; void main(){ vP = position;
+        gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }`,
+      fragmentShader: `
+        precision highp float;
+        uniform vec3 uCam; uniform float uTime, uEnergy, uFade;
+        varying vec3 vP;
+        const float R = ${R.toFixed(2)};
+        float dens(vec3 p, float e){
+          float r = length(p) + 1e-4;
+          vec3 n = p / r;
+          float core  = exp(-r * 7.5) * 2.1;
+          float shell = exp(-pow((r - 0.50*e) / (0.30*e), 2.0)) * 0.42;
+          float lobe = 0.0;
+          lobe += pow(max(dot(n, vec3( 0.5773, 0.5773, 0.5773)), 0.0), 4.0);
+          lobe += pow(max(dot(n, vec3( 0.5773,-0.5773,-0.5773)), 0.0), 4.0);
+          lobe += pow(max(dot(n, vec3(-0.5773, 0.5773,-0.5773)), 0.0), 4.0);
+          lobe += pow(max(dot(n, vec3(-0.5773,-0.5773, 0.5773)), 0.0), 4.0);
+          float radial = exp(-pow((r - 1.00*e) / (0.36*e), 2.0));
+          return core + shell + lobe * radial * 1.25;
+        }
+        void main(){
+          vec3 ro = vP;
+          vec3 rd = normalize(vP - uCam);
+          float b = dot(ro, rd), c = dot(ro, ro) - R*R;
+          float h = b*b - c;
+          if (h < 0.0) discard;
+          float far = -b + sqrt(h);
+          const int N = 44;
+          float dt = far / float(N);
+          float jit = fract(sin(dot(gl_FragCoord.xy, vec2(12.9898,78.233))) * 43758.5453);
+          float pulse = 1.0 + 0.018 * sin(uTime * 0.42);
+          vec3 acc = vec3(0.0);
+          for (int i = 0; i < N; i++){
+            vec3 p = (ro + rd * (float(i) + jit) * dt) / pulse;
+            float d = dens(p, uEnergy);
+            vec3 col = mix(vec3(0.10,0.16,0.34), vec3(0.55,0.68,0.93), smoothstep(0.04,0.85,d));
+            col = mix(col, vec3(1.00,0.94,0.86), smoothstep(1.1,2.8,d));
+            acc += col * d;
+          }
+          acc *= dt;
+          gl_FragColor = vec4(acc * 0.62 * uFade, 1.0);
+        }`
+    });
+    const cloud = new THREE.Mesh(new THREE.SphereGeometry(R, 48, 36), mat);
+    g.add(cloud);
+
+    const core = new THREE.Mesh(ball(3), new THREE.MeshBasicMaterial({
+      color: 0xfff0dc, transparent: true, fog: false
+    }));
+    core.scale.setScalar(0.085);
+    g.add(core);
+    g.add(rimShell(0.15, 0xffd7ad, 2.2, 0.9));
+
+    let e = 0.75;
+    return {
+      group: g,
+      control(v) { e = 0.60 + v * 0.55; },
+      update(dt, t) {
+        mat.uniforms.uTime.value = t;
+        mat.uniforms.uEnergy.value = approach(mat.uniforms.uEnergy.value, e, 2.4, dt);
+        cloud.worldToLocal(mat.uniforms.uCam.value.copy(camera.position));
+      }
+    };
+  }
+});
+
+/* ---------------------------------------------------------------------------
+   III — CARBON GAS
+   Atoms with nothing to hold them. The drift is a sum of slow sines on a
+   time axis the temperature stretches, so heat changes the pace of the room
+   without ever jolting it.
+   ------------------------------------------------------------------------- */
+CH.push({
+  no: 'III', title: 'Carbon Gas',
+  text: 'Unbound, and in no hurry. Nothing here has decided anything yet.',
+  dist: 11, pitch: 0.13, spin: 0.03, dust: .6,
+  control: { name: 'Temperature', value: 0.32, fmt: v => (300 + v * 3400 | 0) + ' K' },
+  build() {
+    const N = 13, r = rng(770707);
+    const g = new THREE.Group();
+    const mat = carbon({ roughness: 0.4, envMapIntensity: 1.55 });
+    const im = new THREE.InstancedMesh(ball(3), mat, N);
+    im.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+    g.add(im);
+
+    const A = [];
+    for (let i = 0; i < N; i++) {
+      const o = { base: new THREE.Vector3(), w: [], p: new THREE.Vector3() };
+      const u = r() * 2 - 1, th = r() * 6.2832, rad = Math.pow(r(), .42) * 2.2;
+      const s = Math.sqrt(1 - u * u);
+      o.base.set(Math.cos(th) * s * rad, u * rad * 0.7, Math.sin(th) * s * rad);
+      for (let k = 0; k < 3; k++) o.w.push({
+        f: 0.10 + r() * 0.26, ph: r() * 6.2832,
+        ax: new THREE.Vector3(r() * 2 - 1, r() * 2 - 1, r() * 2 - 1).normalize(),
+        am: 0.35 + r() * 0.55
+      });
+      A.push(o);
+    }
+    let speed = 0.4, tau = 0;
+    return {
+      group: g,
+      control(v) { speed = 0.12 + v * 1.5; },
+      update(dt) {
+        tau += dt * speed;
+        for (let i = 0; i < N; i++) {
+          const o = A[i];
+          o.p.copy(o.base);
+          for (const w of o.w) {
+            const s = Math.sin(tau * w.f * 6.2832 + w.ph) * w.am;
+            o.p.addScaledVector(w.ax, s);
+          }
+          atomAt(im, i, o.p, 0.185);
+        }
+        im.instanceMatrix.needsUpdate = true;
+      }
+    };
+  }
+});
+
+/* ---------------------------------------------------------------------------
+   IV — CARBON CHAINS
+   The same atoms, given a destination. Each one leaves the gas at its own
+   moment, so the assembly reads as something arriving rather than something
+   being played back.
+   ------------------------------------------------------------------------- */
+CH.push({
+  no: 'IV', title: 'Carbon Chains',
+  text: 'Given the chance, it organises. Chains first, then rings.',
+  dist: 10.5, pitch: 0.2, spin: 0.033, dust: .4,
+  control: { name: 'Reaction', value: 0, fmt: v => (v * 100).toFixed(0) + '%' },
+  build() {
+    const L = 0.66, r = rng(414243);
+    const targets = [];
+    const push = (pts, rot, off) => {
+      const q = new THREE.Quaternion().setFromEuler(new THREE.Euler(rot[0], rot[1], rot[2]));
+      for (const p of pts) targets.push(new THREE.Vector3(p[0], p[1], p[2]).applyQuaternion(q).add(new THREE.Vector3(off[0], off[1], off[2])));
+    };
+    // an aromatic ring
+    const ring = [];
+    for (let i = 0; i < 6; i++) ring.push([Math.cos(i * 1.0472) * L, 0, Math.sin(i * 1.0472) * L]);
+    push(ring, [0.34, 0.5, 0.1], [0.35, 0.15, 0]);
+    // a long zig-zag chain
+    const zig = n => { const a = []; for (let i = 0; i < n; i++) a.push([i * L * 0.866 - (n - 1) * L * 0.433, (i % 2 ? 1 : -1) * L * 0.25, 0]); return a; };
+    push(zig(8), [0.1, -0.45, 0.22], [-0.95, 1.25, -0.45]);
+    push(zig(5), [-0.2, 0.9, -0.3], [1.95, -1.15, 0.4]);
+    // a branch point: tetrahedral, the first hint of Chapter IX
+    const tet = [[0, 0, 0], [0.5773, 0.5773, 0.5773], [0.5773, -0.5773, -0.5773], [-0.5773, 0.5773, -0.5773], [-0.5773, -0.5773, 0.5773]]
+      .map(p => [p[0] * L, p[1] * L, p[2] * L]);
+    push(tet, [0, 0.3, 0], [-1.95, -1.2, 0.35]);
+
+    const NT = targets.length, FREE = 8, N = NT + FREE;
+    const g = new THREE.Group();
+    const aMat = carbon({ roughness: 0.42, envMapIntensity: 1.5 });
+    const bMat = linkMat({ color: 0x232830, roughness: 0.42, envMapIntensity: 1.5 });
+    const atoms = new THREE.InstancedMesh(ball(2), aMat, N);
+    atoms.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+    g.add(atoms);
+
+    const bonds = findBonds(targets, L * 1.18);
+    const bm = new THREE.InstancedMesh(rod(10), bMat, bonds.length);
+    bm.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+    g.add(bm);
+
+    const A = [];
+    for (let i = 0; i < N; i++) {
+      const u = r() * 2 - 1, th = r() * 6.2832, rad = 2.1 + Math.pow(r(), .5) * 1.3;
+      const s = Math.sqrt(1 - u * u);
+      A.push({
+        gas: new THREE.Vector3(Math.cos(th) * s * rad, u * rad * 0.52, Math.sin(th) * s * rad),
+        tgt: i < NT ? targets[i] : null,
+        stagger: i < NT ? Math.pow(r(), 1.3) * 0.5 : 0,
+        w: [{ f: 0.09 + r() * 0.14, ph: r() * 6.2832, ax: new THREE.Vector3(r() * 2 - 1, r() * 2 - 1, r() * 2 - 1).normalize(), am: 0.3 + r() * 0.4 },
+            { f: 0.14 + r() * 0.2, ph: r() * 6.2832, ax: new THREE.Vector3(r() * 2 - 1, r() * 2 - 1, r() * 2 - 1).normalize(), am: 0.18 + r() * 0.26 }],
+        cur: new THREE.Vector3(), k: 0
+      });
+    }
+
+    let prog = 0, pT = 0, tau = 0;
+    return {
+      group: g,
+      control(v) { pT = v; },
+      update(dt, t) {
+        prog = approach(prog, pT, 3.5, dt);
+        tau += dt;
+        for (let i = 0; i < N; i++) {
+          const o = A[i];
+          o.k = o.tgt ? smoother((prog - o.stagger) / 0.5) : 0;
+          o.cur.copy(o.gas);
+          const drift = 1 - o.k;
+          for (const w of o.w) o.cur.addScaledVector(w.ax, Math.sin(tau * w.f * 6.2832 + w.ph) * w.am * drift);
+          if (o.tgt) o.cur.lerp(o.tgt, o.k);
+          atomAt(atoms, i, o.cur, 0.155);
+        }
+        atoms.instanceMatrix.needsUpdate = true;
+        for (let i = 0; i < bonds.length; i++) {
+          const [x, y] = bonds[i];
+          const k = Math.min(A[x].k, A[y].k);
+          bondAt(bm, i, A[x].cur, A[y].cur, 0.034 * k * k);
+        }
+        bm.instanceMatrix.needsUpdate = true;
+      }
+    };
+  }
+});
+
+/* ---------------------------------------------------------------------------
+   V — GRAPHENE
+   One sheet, one atom thick, running past the edge of the light. The sheet
+   is finite; the fog is what makes it endless. The camera begins overhead,
+   where the repetition is legible, and descends until the viewer is standing
+   on the plane.
+   ------------------------------------------------------------------------- */
+function hexSheet(a, radius) {
+  const pts = [], a1x = 1.5 * a, a1z = 0.8660254 * a;
+  const M = Math.ceil(radius / (0.8660254 * a)) + 2;
+  for (let i = -M; i <= M; i++) for (let j = -M; j <= M; j++) {
+    const x = a1x * (i + j), z = a1z * (i - j);
+    if (x * x + z * z < radius * radius) pts.push(new THREE.Vector3(x, 0, z));
+    const x2 = x + a;
+    if (x2 * x2 + z * z < radius * radius) pts.push(new THREE.Vector3(x2, 0, z));
+  }
+  return pts;
+}
+
+CH.push({
+  no: 'V', title: 'Graphene',
+  text: 'One atom thick. The strongest material ever measured, and mostly empty space.',
+  dist: 8.7, pitch: 1.02, spin: 0.026, dust: .18,
+  fog: 0.125,
+  control: { name: 'Unit cell', value: 0, fmt: v => v < 0.02 ? 'Hidden' : (v * 100).toFixed(0) + '%' },
+  build() {
+    const a = 0.30, g = new THREE.Group();
+    const pts = hexSheet(a, 9.2);
+    const bonds = findBonds(pts, a * 1.12);
+
+    const aMat = carbon({ roughness: 0.4, envMapIntensity: 1.6 });
+    const bMat = new THREE.MeshBasicMaterial({
+      color: 0xffffff, vertexColors: true, transparent: true, opacity: 0.30, depthWrite: true
+    });
+    const atoms = new THREE.InstancedMesh(ball(1), aMat, pts.length);
+    for (let i = 0; i < pts.length; i++) atomAt(atoms, i, pts[i], 0.062);
+    atoms.instanceMatrix.needsUpdate = true;
+    atoms.frustumCulled = false;
+    g.add(atoms);
+
+    const bm = new THREE.Mesh(filaments(bonds, pts, { radius: 0.017, bow: 0.075 }), bMat);
+    bm.frustumCulled = false;
+    g.add(bm);
+
+    /* the primitive cell: two atoms, and the rhombus that repeats forever */
+    const cell = new THREE.Group();
+    const warm = new THREE.MeshBasicMaterial({ color: 0xffbe86, transparent: true, opacity: 0, fog: false });
+    for (const p of [new THREE.Vector3(0, 0, 0), new THREE.Vector3(a, 0, 0)]) {
+      const m = new THREE.Mesh(ball(3), warm);
+      m.position.copy(p); m.scale.setScalar(0.082);
+      cell.add(m);
+    }
+    const c0 = [0, 0], c1 = [1.5 * a, 0.8660254 * a], c2 = [3 * a, 0], c3 = [1.5 * a, -0.8660254 * a];
+    const rp = new Float32Array(15);
+    [c0, c1, c2, c3, c0].forEach((c, i) => { rp[i * 3] = c[0] - 0.75 * a; rp[i * 3 + 1] = 0.001; rp[i * 3 + 2] = c[1]; });
+    const rg = new THREE.BufferGeometry();
+    rg.setAttribute('position', new THREE.BufferAttribute(rp, 3));
+    const rline = new THREE.Line(rg, new THREE.LineBasicMaterial({
+      color: 0xffb779, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false, fog: false
+    }));
+    cell.add(rline);
+    g.add(cell);
+
+    let hi = 0, hiT = 0, age = 0;
+    return {
+      group: g,
+      control(v) { hiT = v; },
+      update(dt, t) {
+        age += dt;
+        hi = approach(hi, hiT, 4, dt);
+        const pulse = 0.75 + 0.25 * Math.sin(t * 1.1);
+        warm.opacity = hi * pulse;
+        rline.material.opacity = hi * 0.75 * pulse;
+        aMat.opacity = aMat.userData.base * (1 - hi * 0.18);
+        // the descent: overhead, then down onto the plane
+        if (!rig.touched) {
+          const k = smoother((age - 1.2) / 15);
+          rig.pitchT = lerp(1.02, 0.115, k);
+          rig.zoom = lerp(1.0, 0.64, k);
+        }
+      }
+    };
+  }
+});
+
+/* ---------------------------------------------------------------------------
+   VI — GRAPHITE
+   The same sheet, five times over. Everything strong about graphite is
+   inside a layer; everything weak about it is the gap the visitor is about
+   to open with a slider.
+   ------------------------------------------------------------------------- */
+CH.push({
+  no: 'VI', title: 'Graphite',
+  text: 'Unbreakable within a layer. Between them, almost nothing holds.',
+  dist: 8.0, pitch: 0.09, spin: 0.03, dust: .18,
+  fog: 0.055,
+  control: { name: 'Interlayer gap', value: 0.06, fmt: v => (0.335 * (1 + v * 1.6)).toFixed(3) + ' nm' },
+  build() {
+    const a = 0.26, LAY = 5, base = 2.36 * a;
+    const g = new THREE.Group();
+    const pts = hexSheet(a, 4.6);
+    const bonds = findBonds(pts, a * 1.12);
+    const aMat = carbon({ roughness: 0.4, envMapIntensity: 1.6 });
+    const bMat = new THREE.MeshBasicMaterial({
+      color: 0xffffff, vertexColors: true, transparent: true, opacity: 0.34, depthWrite: true
+    });
+
+    // one filament net, shared by every layer; AB stacking is the group offset
+    const web = filaments(bonds, pts, { radius: 0.019, bow: 0.075 });
+    const layers = [];
+    for (let L = 0; L < LAY; L++) {
+      const lg = new THREE.Group();
+      lg.position.x = (L % 2) ? a : 0;                   // AB stacking
+      const atoms = new THREE.InstancedMesh(ball(1), aMat, pts.length);
+      for (let i = 0; i < pts.length; i++) atomAt(atoms, i, pts[i], 0.055);
+      atoms.instanceMatrix.needsUpdate = true; atoms.frustumCulled = false;
+      const net = new THREE.Mesh(web, bMat);
+      net.frustumCulled = false;
+      lg.add(atoms, net);
+      g.add(lg);
+      layers.push(lg);
+    }
+
+    /* the weak interaction, drawn only while it is being stretched */
+    const tether = [];
+    {
+      const key = p => p.x.toFixed(3) + ',' + p.z.toFixed(3);
+      const have = new Set(pts.map(key));
+      let n = 0;
+      for (const p of pts) {
+        // an atom with a neighbour one bond to its left is eclipsed by the layer above
+        if (!have.has((p.x - a).toFixed(3) + ',' + p.z.toFixed(3))) continue;
+        if (Math.hypot(p.x, p.z) > 3.4) continue;
+        if (n++ % 6 === 0) tether.push(p);
+      }
+    }
+    const segs = tether.length * (LAY - 1);
+    const tp = new Float32Array(segs * 6);
+    const tg = new THREE.BufferGeometry();
+    tg.setAttribute('position', new THREE.BufferAttribute(tp, 3));
+    const tmat = new THREE.LineBasicMaterial({
+      color: 0x7d9ad4, transparent: true, opacity: 0,
+      blending: THREE.AdditiveBlending, depthWrite: false, fog: false
+    });
+    const tl = new THREE.LineSegments(tg, tmat);
+    tl.frustumCulled = false;
+    g.add(tl);
+
+    let f = 1.14, fT = 1.14;
+    const place = () => {
+      const h = base * f;
+      for (let L = 0; L < LAY; L++) layers[L].position.y = (L - (LAY - 1) / 2) * h;
+      let n = 0;
+      for (let L = 0; L < LAY - 1; L++) {
+        const y0 = (L - (LAY - 1) / 2) * h, y1 = y0 + h;
+        for (const p of tether) {
+          tp[n++] = p.x; tp[n++] = y0; tp[n++] = p.z;
+          tp[n++] = p.x; tp[n++] = y1; tp[n++] = p.z;
+        }
+      }
+      tg.attributes.position.needsUpdate = true;
+      tmat.opacity = 0.42 * smooth((f - 1.04) / 0.4) * (1 - smooth((f - 1.9) / 0.7));
+    };
+    place();
+
+    return {
+      group: g,
+      control(v) { fT = 1 + v * 1.6; },
+      update(dt) {
+        const nf = approach(f, fT, 3.6, dt);
+        if (Math.abs(nf - f) > 1e-5) { f = nf; place(); }
+        rig.base = lerp(7.6, 11.4, smooth((f - 1) / 1.6));
+      }
+    };
+  }
+});
+
+/* ---------------------------------------------------------------------------
+   VII — CARBON NANOTUBE
+   Not a cut. The same lattice is bent by a single continuous parameter: the
+   bend radius runs from infinite to exactly one circumference, and the sheet
+   closes on itself. Then the camera goes inside.
+   ------------------------------------------------------------------------- */
+CH.push({
+  no: 'VII', title: 'Carbon Nanotube',
+  text: 'The plane closes on itself. Spacing unchanged; only the curvature is new.',
+  dist: 6.4, pitch: 0.1, spin: 0.05, dust: .22,
+  control: { name: 'Diameter', value: 0.42, fmt: v => '(' + colsFor(v) + ',' + colsFor(v) + ')' },
+  build() {
+    const a = 0.20, W = Math.sqrt(3) * a, ROWS = 9, HGT = 3 * a;
+    const g = new THREE.Group();
+    const MAXC = 20, MAXA = MAXC * ROWS * 4;
+    const aMat = carbon({ roughness: 0.4, envMapIntensity: 1.6, side: THREE.DoubleSide });
+    const bMat = linkMat({ color: 0x232a33, roughness: 0.44, envMapIntensity: 1.5 });
+    const atoms = new THREE.InstancedMesh(ball(2), aMat, MAXA);
+    atoms.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+    atoms.frustumCulled = false;
+    const bm = new THREE.InstancedMesh(rod(7), bMat, MAXA * 2);
+    bm.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+    bm.frustumCulled = false;
+    g.add(atoms, bm);
+
+    let cols = 0, flatU = [], flatV = [], bonds = [], seam = [];
+    const P = [];   // working positions
+
+    function rebuild(n) {
+      cols = n;
+      flatU = []; flatV = [];
+      const y0 = -(ROWS - 1) * HGT / 2 - a * 1.25;
+      for (let c = 0; c < cols; c++) for (let rIdx = 0; rIdx < ROWS; rIdx++) {
+        const u = c * W, v = y0 + rIdx * HGT;
+        flatU.push(u, u, u + W / 2, u + W / 2);
+        flatV.push(v, v + a, v + 1.5 * a, v + 2.5 * a);
+      }
+      const N = flatU.length;
+      while (P.length < N) P.push(new THREE.Vector3());
+      // bonds on the periodic sheet: a wrap counts only once the tube is closed
+      const span = cols * W, lim = a * 1.12;
+      const flat = [];
+      for (let i = 0; i < N; i++) flat.push([flatU[i], flatV[i]]);
+      bonds = []; seam = [];
+      const buckets = new Map();
+      for (let i = 0; i < N; i++) {
+        const k = Math.floor(flat[i][0] / lim) + ':' + Math.floor(flat[i][1] / lim);
+        let b = buckets.get(k); if (!b) buckets.set(k, b = []);
+        b.push(i);
+      }
+      for (let i = 0; i < N; i++) {
+        const gi = Math.floor(flat[i][0] / lim), gj = Math.floor(flat[i][1] / lim);
+        for (let p = -1; p <= 1; p++) for (let q = -1; q <= 1; q++) {
+          const list = buckets.get((gi + p) + ':' + (gj + q));
+          if (!list) continue;
+          for (const j of list) {
+            if (j <= i) continue;
+            const dv = flat[i][1] - flat[j][1];
+            const du = flat[i][0] - flat[j][0];
+            if (du * du + dv * dv < lim * lim) bonds.push([i, j]);
+          }
+        }
+      }
+      // and separately, the bonds that only exist because the sheet wrapped
+      const last = [], first = [];
+      for (let i = 0; i < N; i++) {
+        if (flat[i][0] > span - W * 1.01) last.push(i);
+        if (flat[i][0] < W * 1.01) first.push(i);
+      }
+      for (const i of last) for (const j of first) {
+        const du = (flat[i][0] - span) - flat[j][0], dv = flat[i][1] - flat[j][1];
+        if (du * du + dv * dv < lim * lim) seam.push([i, j]);
+      }
+      atoms.count = N;
+      bm.count = bonds.length + seam.length;
+    }
+
+    let curl = 0, nT = 12, nDisp = 12, age = 0;
+    rebuild(12);
+
+    function place(c, nD) {
+      const N = flatU.length, span = nD * W, sc = nD / cols;
+      const R = span / (6.2831853 * Math.max(c, 1e-4));
+      for (let i = 0; i < N; i++) {
+        const th = (flatU[i] * sc - span / 2) / R;
+        P[i].set(R * Math.sin(th), flatV[i], R * Math.cos(th) - R);
+        atomAt(atoms, i, P[i], 0.072);
+      }
+      atoms.instanceMatrix.needsUpdate = true;
+      let k = 0;
+      for (const [i, j] of bonds) bondAt(bm, k++, P[i], P[j], 0.026);
+      const sr = 0.026 * smooth((c - 0.88) / 0.12);
+      for (const [i, j] of seam) bondAt(bm, k++, P[i], P[j], sr);
+      bm.instanceMatrix.needsUpdate = true;
+    }
+    place(1e-4, 12);
+
+    return {
+      group: g,
+      control(v) { nT = colsFor(v); },
+      update(dt) {
+        age += dt;
+        curl = smoother((age - 0.7) / 6.8);
+        if (nT !== cols) rebuild(nT);
+        nDisp = approach(nDisp, nT, 5, dt);
+        place(Math.max(curl, 1e-4), nDisp);
+      },
+      camera(t) {
+        // out, over the mouth, down the axis, and out again
+        const K = [
+          { p: 0.00, r: 11.0, y: 1.4, l: 0.0 },
+          { p: 0.24, r: 11.0, y: 1.4, l: 0.0 },
+          { p: 0.40, r: 0.0, y: 3.4, l: 1.2 },
+          { p: 0.66, r: 0.0, y: -3.4, l: -5.6 },
+          { p: 0.82, r: 11.0, y: -1.4, l: 0.0 },
+          { p: 1.00, r: 11.0, y: 1.4, l: 0.0 }
+        ];
+        const p = (t / 58) % 1;
+        let i = 0; while (i < K.length - 2 && p > K[i + 1].p) i++;
+        const k = smoother((p - K[i].p) / (K[i + 1].p - K[i].p));
+        const r = lerp(K[i].r, K[i + 1].r, k);
+        const y = lerp(K[i].y, K[i + 1].y, k);
+        const l = lerp(K[i].l, K[i + 1].l, k);
+        return {
+          pos: new THREE.Vector3(Math.sin(t * 0.05) * 0.05, y, r + Math.sin(t * 0.083) * 0.1),
+          look: new THREE.Vector3(0, l, 0),
+          fov: lerp(58, 28, smooth(r / 6))
+        };
+      }
+    };
+  }
+});
+function colsFor(v) { return Math.round(lerp(8, 20, v)); }
+
+/* ---------------------------------------------------------------------------
+   VIII — BUCKMINSTERFULLERENE
+   Sixty atoms, one distance, one angle. The cage is derived rather than
+   modelled: every vertex is a point one third of the way along an edge of an
+   icosahedron, which is why the symmetry is exact and not approximate.
+   ------------------------------------------------------------------------- */
+CH.push({
+  no: 'VIII', title: 'Buckminsterfullerene',
+  text: 'Sixty atoms. Twelve pentagons, twenty hexagons, and no other way to close it.',
+  dist: 8.6, pitch: 0.16, spin: 0.055, dust: .5, shadow: true,
+  control: {
+    name: 'Faces', value: 0.5,
+    fmt: v => v < 0.46 ? '12 pentagons' : v > 0.54 ? '20 hexagons' : 'Cage'
+  },
+  build() {
+    const R = 1.34, PHI = 1.6180339887;
+    const ico = [];
+    for (const s1 of [1, -1]) for (const s2 of [1, -1]) {
+      ico.push(new THREE.Vector3(0, s1, s2 * PHI));
+      ico.push(new THREE.Vector3(s1, s2 * PHI, 0));
+      ico.push(new THREE.Vector3(s1 * PHI, 0, s2));
+    }
+    const edges = [], faces = [];
+    for (let i = 0; i < 12; i++) for (let j = i + 1; j < 12; j++)
+      if (ico[i].distanceTo(ico[j]) < 2.05) edges.push([i, j]);
+    for (let i = 0; i < 12; i++) for (let j = i + 1; j < 12; j++) for (let k = j + 1; k < 12; k++)
+      if (ico[i].distanceTo(ico[j]) < 2.05 && ico[j].distanceTo(ico[k]) < 2.05 && ico[i].distanceTo(ico[k]) < 2.05)
+        faces.push([i, j, k]);
+
+    const P = [];
+    for (const [i, j] of edges) {
+      P.push(new THREE.Vector3().lerpVectors(ico[i], ico[j], 1 / 3));
+      P.push(new THREE.Vector3().lerpVectors(ico[i], ico[j], 2 / 3));
+    }
+    const norm = P[0].length();
+    P.forEach(p => p.multiplyScalar(R / norm));
+    const bonds = findBonds(P, (2 / 3) * (R / norm) * 1.12);
+
+    const g = new THREE.Group();
+    const aMat = carbon({ roughness: 0.33, metalness: 0.1, clearcoat: 0.95, clearcoatRoughness: 0.16, envMapIntensity: 2.1 });
+    const bMat = linkMat({ color: 0x272d36, roughness: 0.34, metalness: 0.12, envMapIntensity: 1.9 });
+    const atoms = new THREE.InstancedMesh(ball(3), aMat, 60);
+    P.forEach((p, i) => atomAt(atoms, i, p, 0.108));
+    atoms.instanceMatrix.needsUpdate = true;
+    const bm = new THREE.InstancedMesh(rod(10), bMat, bonds.length);
+    bonds.forEach((b, i) => bondAt(bm, i, P[b[0]], P[b[1]], 0.036));
+    bm.instanceMatrix.needsUpdate = true;
+    g.add(atoms, bm);
+    g.add(rimShell(R + 0.13, 0x8aa4d8, 3.6, 0.42));
+
+    /* faces, gathered around the symmetry axes they belong to */
+    const gather = (centre, n) => {
+      const idx = P.map((p, i) => [i, p.distanceTo(centre)]).sort((a, b) => a[1] - b[1]).slice(0, n).map(a => a[0]);
+      const nrm = centre.clone().normalize();
+      const ux = new THREE.Vector3().subVectors(P[idx[0]], nrm.clone().multiplyScalar(P[idx[0]].dot(nrm))).normalize();
+      const uy = new THREE.Vector3().crossVectors(nrm, ux);
+      idx.sort((a, b) => Math.atan2(P[a].dot(uy), P[a].dot(ux)) - Math.atan2(P[b].dot(uy), P[b].dot(ux)));
+      return idx;
+    };
+    const build = (centres, n, colour) => {
+      const tri = [], seg = [];
+      for (const c of centres) {
+        const idx = gather(c, n);
+        const mid = new THREE.Vector3();
+        idx.forEach(i => mid.add(P[i]));
+        mid.multiplyScalar(1 / n).multiplyScalar(0.995);
+        for (let k = 0; k < n; k++) {
+          const p1 = P[idx[k]].clone().multiplyScalar(0.995), p2 = P[idx[(k + 1) % n]].clone().multiplyScalar(0.995);
+          tri.push(mid.x, mid.y, mid.z, p1.x, p1.y, p1.z, p2.x, p2.y, p2.z);
+          const q1 = p1.clone().multiplyScalar(1.02), q2 = p2.clone().multiplyScalar(1.02);
+          seg.push(q1.x, q1.y, q1.z, q2.x, q2.y, q2.z);
+        }
+      }
+      const fg = new THREE.BufferGeometry();
+      fg.setAttribute('position', new THREE.Float32BufferAttribute(tri, 3));
+      const fm = new THREE.MeshBasicMaterial({
+        color: colour, transparent: true, opacity: 0, side: THREE.DoubleSide,
+        blending: THREE.AdditiveBlending, depthWrite: false, fog: false
+      });
+      const lg = new THREE.BufferGeometry();
+      lg.setAttribute('position', new THREE.Float32BufferAttribute(seg, 3));
+      const lm = new THREE.LineBasicMaterial({
+        color: colour, transparent: true, opacity: 0,
+        blending: THREE.AdditiveBlending, depthWrite: false, fog: false
+      });
+      const grp = new THREE.Group();
+      grp.add(new THREE.Mesh(fg, fm), new THREE.LineSegments(lg, lm));
+      g.add(grp);
+      return { fm, lm };
+    };
+    const pent = build(ico, 5, 0xffa462);
+    const hexC = faces.map(f => ico[f[0]].clone().add(ico[f[1]]).add(ico[f[2]]).multiplyScalar(1 / 3));
+    const hex = build(hexC, 6, 0x7fa8ea);
+
+    let v = 0.5, vT = 0.5;
+    return {
+      group: g,
+      control(x) { vT = x; },
+      update(dt, t) {
+        v = approach(v, vT, 5, dt);
+        const p = smooth((0.46 - v) / 0.42), h = smooth((v - 0.54) / 0.42);
+        const b = 0.78 + 0.22 * Math.sin(t * 0.9);
+        pent.fm.opacity = p * 0.20 * b; pent.lm.opacity = p * 0.65 * b;
+        hex.fm.opacity = h * 0.16 * b; hex.lm.opacity = h * 0.6 * b;
+      }
+    };
+  }
+});
+
+/* ---------------------------------------------------------------------------
+   IX — DIAMOND NETWORK
+   No sticks, no scaffold. Luminous nodes on the diamond-cubic lattice, with
+   the thinnest possible line where a bond is needed to read the tetrahedron.
+   The crystal grows outward from one nucleation point, which is exactly how
+   the real thing does it.
+   ------------------------------------------------------------------------- */
+CH.push({
+  no: 'IX', title: 'Diamond Network',
+  text: 'Four bonds, one angle, repeated without exception. The hardest arrangement there is.',
+  dist: 8.4, pitch: 0.19, spin: 0.042, dust: .3,
+  control: { name: 'Crystal growth', value: 0.25, fmt: v => (12 + v * 88 | 0) + ' cells' },
+  build() {
+    const A = 1.0, M = 4, LIM = 3.6;
+    const fcc = [[0, 0, 0], [0, .5, .5], [.5, 0, .5], [.5, .5, 0]];
+    const pts = [];
+    for (let i = -M; i <= M; i++) for (let j = -M; j <= M; j++) for (let k = -M; k <= M; k++)
+      for (const f of fcc) for (const b of [0, 0.25]) {
+        const p = new THREE.Vector3((i + f[0] + b) * A, (j + f[1] + b) * A, (k + f[2] + b) * A);
+        if (p.length() < LIM) pts.push(p);
+      }
+    pts.sort((a, b) => a.length() - b.length());
+    const bonds = findBonds(pts, A * 0.4331 * 1.06);
+    const N = pts.length;
+
+    const g = new THREE.Group();
+    const nodeMat = new THREE.MeshBasicMaterial({ color: 0xc6d6ee, transparent: true, opacity: .95, fog: false });
+    const nodes = new THREE.InstancedMesh(ball(1), nodeMat, N);
+    nodes.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+    nodes.frustumCulled = false;
+    g.add(nodes);
+
+    const pos = new Float32Array(N * 3), sc = new Float32Array(N);
+    pts.forEach((p, i) => { pos[i * 3] = p.x; pos[i * 3 + 1] = p.y; pos[i * 3 + 2] = p.z; });
+    const hg = new THREE.BufferGeometry();
+    hg.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+    hg.setAttribute('aS', new THREE.BufferAttribute(sc, 1));
+    const halo = new THREE.Points(hg, new THREE.ShaderMaterial({
+      transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, fog: false,
+      uniforms: { uPix: { value: renderer.getPixelRatio() }, uFade: { value: 1 } },
+      vertexShader: `attribute float aS; uniform float uPix; varying float vS;
+        void main(){ vec4 mv = modelViewMatrix * vec4(position,1.0); vS = aS;
+          gl_PointSize = uPix * aS * (17.0 / max(0.2, -mv.z));
+          gl_Position = projectionMatrix * mv; }`,
+      fragmentShader: `uniform float uFade; varying float vS;
+        void main(){ float d = length(gl_PointCoord - 0.5);
+          float a = pow(smoothstep(0.5, 0.0, d), 2.4);
+          gl_FragColor = vec4(vec3(0.50,0.64,0.94), a * vS * uFade * 0.55); }`
+    }));
+    halo.frustumCulled = false;
+    g.add(halo);
+
+    const lp = new Float32Array(bonds.length * 6), lc = new Float32Array(bonds.length * 6);
+    bonds.forEach((b, i) => {
+      const p = pts[b[0]], q = pts[b[1]];
+      lp[i * 6] = p.x; lp[i * 6 + 1] = p.y; lp[i * 6 + 2] = p.z;
+      lp[i * 6 + 3] = q.x; lp[i * 6 + 4] = q.y; lp[i * 6 + 5] = q.z;
+    });
+    const lg = new THREE.BufferGeometry();
+    lg.setAttribute('position', new THREE.BufferAttribute(lp, 3));
+    lg.setAttribute('color', new THREE.BufferAttribute(lc, 3));
+    const links = new THREE.LineSegments(lg, new THREE.LineBasicMaterial({
+      vertexColors: true, transparent: true, opacity: 0.55,
+      blending: THREE.AdditiveBlending, depthWrite: false, fog: false
+    }));
+    links.frustumCulled = false;
+    g.add(links);
+
+    const S = new Float32Array(N);
+    let rad = 1.0, radT = 1.0;
+    const grow = () => {
+      for (let i = 0; i < N; i++) {
+        const s = smoother((rad - pts[i].length()) / 0.85);
+        S[i] = s;
+        sc[i] = s * 1.7;
+        atomAt(nodes, i, pts[i], 0.048 * s);
+      }
+      nodes.instanceMatrix.needsUpdate = true;
+      hg.attributes.aS.needsUpdate = true;
+      bonds.forEach((b, i) => {
+        const k = Math.min(S[b[0]], S[b[1]]);
+        for (let e = 0; e < 2; e++) {
+          lc[i * 6 + e * 3] = 0.30 * k; lc[i * 6 + e * 3 + 1] = 0.40 * k; lc[i * 6 + e * 3 + 2] = 0.62 * k;
+        }
+      });
+      lg.attributes.color.needsUpdate = true;
+    };
+    grow();
+
+    return {
+      group: g,
+      control(v) { radT = 0.55 + v * 3.1; },
+      update(dt, t) {
+        const r = approach(rad, radT, 2.6, dt);
+        if (Math.abs(r - rad) > 1e-4) { rad = r; grow(); }
+        rig.base = 4.6 + rad * 3.1;
+      }
+    };
+  }
+});
+
+/* ---------------------------------------------------------------------------
+   X — THE STONE
+   The first object in the exhibition that is a thing rather than a structure.
+   It is still generated: a round brilliant cut from real proportions, with
+   every facet derived by intersecting cutting planes rather than modelled,
+   so the stone can be re-cut while the visitor watches.
+
+   Nothing here is lit by the scene's lights. The stone is drawn twice — once
+   from the inside, where the environment arrives dispersed into three
+   wavelengths, and once from the outside, where it only reflects. That is
+   very close to what a diamond actually does to a room.
+   ------------------------------------------------------------------------- */
+function brilliant(o) {
+  const R = 0.5, PI4 = Math.PI / 4, PI8 = Math.PI / 8, c225 = Math.cos(PI8);
+  const rt = o.table / 1.924, hc = o.crown, g = o.girdle, pd = o.pavilion;
+  const T = [], S = [], G = [], Gb = [], L = [];
+  for (let i = 0; i < 8; i++) { const a = i * PI4; T.push(new THREE.Vector3(rt * Math.cos(a), hc, rt * Math.sin(a))); }
+  for (let k = 0; k < 16; k++) {
+    const a = k * PI8;
+    G.push(new THREE.Vector3(R * Math.cos(a), 0, R * Math.sin(a)));
+    Gb.push(new THREE.Vector3(R * Math.cos(a), -g, R * Math.sin(a)));
+  }
+  // star points sit where two kite planes meet — solved, not placed
+  const ys = hc * (1 - o.star), rs = (hc * R - (R - rt) * ys) / (hc * c225);
+  for (let i = 0; i < 8; i++) { const a = i * PI4 + PI8; S.push(new THREE.Vector3(rs * Math.cos(a), ys, rs * Math.sin(a))); }
+  // and the lower-girdle junctions where two pavilion planes meet
+  const u = o.lower, rl = (1 - u) * R / c225, yl = -g - u * pd;
+  for (let i = 0; i < 8; i++) { const a = i * PI4 + PI8; L.push(new THREE.Vector3(rl * Math.cos(a), yl, rl * Math.sin(a))); }
+  const C = new THREE.Vector3(0, -g - pd, 0);
+
+  const F = [T.slice()];                                   // the table
+  for (let i = 0; i < 8; i++) {
+    const j = (i + 1) % 8, h = (i + 7) % 8, k = 2 * i, k1 = 2 * i + 1, k2 = (2 * i + 2) % 16;
+    F.push([T[i], S[i], G[k], S[h]]);                       // kite / bezel
+    F.push([T[i], T[j], S[i]]);                             // star
+    F.push([S[i], G[k1], G[k]], [S[i], G[k2], G[k1]]);      // upper girdle halves
+    F.push([G[k], G[k1], Gb[k1], Gb[k]], [G[k1], G[k2], Gb[k2], Gb[k1]]);   // girdle
+    F.push([Gb[k], L[i], C, L[h]]);                         // pavilion main
+    F.push([L[i], Gb[k], Gb[k1]], [L[i], Gb[k1], Gb[k2]]);  // lower girdle halves
+  }
+
+  const scale = o.scale, yMid = (hc - g - pd) / 2;
+  const mid = new THREE.Vector3(0, 0, 0);
+  const pos = [];
+  const n = new THREE.Vector3(), e1 = new THREE.Vector3(), e2 = new THREE.Vector3(), ct = new THREE.Vector3();
+  const put = v => pos.push(v.x * scale, (v.y - yMid) * scale, v.z * scale);
+  for (const f of F) for (let i = 1; i < f.length - 1; i++) {
+    const a = f[0], b = f[i], c = f[i + 1];
+    e1.subVectors(b, a); e2.subVectors(c, a);
+    n.crossVectors(e1, e2);
+    ct.copy(a).add(b).add(c).multiplyScalar(1 / 3).sub(mid);
+    ct.y -= yMid;
+    if (n.dot(ct) < 0) { put(a); put(c); put(b); } else { put(a); put(b); put(c); }
+  }
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  geo.computeVertexNormals();                              // non-indexed: one normal per facet
+  return geo;
+}
+
+/* The studio the rest of the exhibition stands in is almost black — correct for
+   a matte object, fatal for a refractive one, which can only return light it is
+   given. This is a second, brighter room that only the stone ever samples: a
+   luminous ceiling, a hard key, a bright horizon for the girdle to catch, and a
+   scatter of small sources so individual facets flash as it turns. */
+let gemEnv = null;
+function gemRoom() {
+  if (gemEnv) return gemEnv;
+  const W = 1024, H = 512;
+  const c = document.createElement('canvas');
+  c.width = W; c.height = H;
+  const x = c.getContext('2d');
+
+  x.fillStyle = '#000';
+  x.fillRect(0, 0, W, H);
+  const g2 = x.createLinearGradient(0, 0, 0, H);
+  g2.addColorStop(0.00, '#5d7ea8');
+  g2.addColorStop(0.30, '#2b3d55');
+  g2.addColorStop(0.47, '#0d131c');
+  g2.addColorStop(0.56, '#04060a');
+  g2.addColorStop(0.80, '#070a0f');
+  g2.addColorStop(1.00, '#141a22');
+  x.fillStyle = g2;
+  x.fillRect(0, 0, W, H);
+
+  const pool = (u, v, rx, ry, col, alpha) => {
+    x.globalAlpha = alpha;
+    x.globalCompositeOperation = 'lighter';
+    for (const cx of [u * W - W, u * W, u * W + W]) {
+      const g = x.createRadialGradient(cx, v * H, 0, cx, v * H, rx * H);
+      g.addColorStop(0, col);
+      g.addColorStop(1, 'rgba(0,0,0,0)');
+      x.fillStyle = g;
+      x.save();
+      x.translate(cx, v * H);
+      x.scale(1, ry);
+      x.beginPath();
+      x.arc(0, 0, rx * H, 0, 6.2832);
+      x.fill();
+      x.restore();
+    }
+    x.globalAlpha = 1;
+    x.globalCompositeOperation = 'source-over';
+  };
+
+  pool(.28, .16, .46, .85, '#ffffff', .95);      // the key, large and soft
+  pool(.28, .15, .17, .60, '#ffffff', 1);        // its core
+  pool(.74, .26, .30, .95, '#c9dcff', .85);      // cool fill opposite
+  pool(.52, .70, .26, .80, '#8fa8cc', .30);      // floor bounce
+  pool(.05, .58, .22, .70, '#ffd0a0', .28);      // a little warmth low down
+  // small hard sources: these are what become individual facet flashes
+  const r = rng(90210);
+  for (let i = 0; i < 14; i++) {
+    const u = r(), v = 0.06 + r() * 0.52;
+    pool(u, v, 0.026 + r() * 0.022, 1, '#ffffff', 0.55 + r() * 0.45);
+  }
+  // the horizon the girdle catches
+  x.globalCompositeOperation = 'lighter';
+  const hz = x.createLinearGradient(0, H * .485, 0, H * .55);
+  hz.addColorStop(0, 'rgba(0,0,0,0)');
+  hz.addColorStop(.5, 'rgba(190,212,255,.85)');
+  hz.addColorStop(1, 'rgba(0,0,0,0)');
+  x.fillStyle = hz;
+  x.fillRect(0, H * .485, W, H * .065);
+  x.globalCompositeOperation = 'source-over';
+
+  gemEnv = new THREE.CanvasTexture(c);
+  gemEnv.encoding = THREE.sRGBEncoding;
+  gemEnv.wrapS = THREE.RepeatWrapping;
+  gemEnv.generateMipmaps = false;
+  gemEnv.minFilter = THREE.LinearFilter;
+  return gemEnv;
+}
+
+const GEM_VERT = `varying vec3 vW; varying vec3 vN;
+  void main(){ vec4 wp = modelMatrix * vec4(position,1.0); vW = wp.xyz;
+    vN = normalize(mat3(modelMatrix) * normal);
+    gl_Position = projectionMatrix * viewMatrix * wp; }`;
+
+const GEM_FRAG = `
+  precision highp float;
+  uniform sampler2D uEnv; uniform vec3 uCam;
+  uniform float uSide, uFade, uDisp, uReturn, uMode, uK;
+  varying vec3 vW; varying vec3 vN;
+
+  vec3 env(vec3 d){
+    d = normalize(d);
+    vec2 uv = vec2(atan(d.z, d.x) * 0.15915494 + 0.5, asin(clamp(d.y,-1.0,1.0)) * 0.31830989 + 0.5);
+    return texture2D(uEnv, uv).rgb;
+  }
+  // shaped, not crushed: highlights gain, midtones survive
+  vec3 envC(vec3 d){ vec3 c = env(d); return c * (0.62 + 1.85 * c); }
+
+  /* Where the light actually goes. It refracts in at the crown, then totally
+     internally reflects off two opposing pavilion facets before leaving through
+     the top. The pavilion is a cone of revolution about Y, so the facet a ray
+     meets is found from the ray's own azimuth — no geometry lookup needed. */
+  vec3 fire(vec3 V, vec3 N, float eta, float k){
+    vec3 T = refract(V, N, eta);
+    if (dot(T, T) < 1e-6) return envC(reflect(V, N));
+    vec2 a1 = normalize(T.xz + vec2(1e-5, 1e-5));
+    vec3 n1 = normalize(vec3(a1.x * k, -1.0, a1.y * k));
+    vec3 r1 = reflect(T, n1);
+    vec2 a2 = normalize(r1.xz + vec2(1e-5, 1e-5));
+    vec3 n2 = normalize(vec3(a2.x * k, -1.0, a2.y * k));
+    vec3 r2 = (r1.y < 0.0) ? reflect(r1, n2) : r1;   // a second bounce only if still descending
+    return envC(r2);
+  }
+  float glint(vec3 N, vec3 V, vec3 Ld, float p){
+    return pow(max(dot(N, normalize(Ld - V)), 0.0), p);
+  }
+
+  void main(){
+    vec3 N = normalize(vN) * uSide;
+    vec3 V = normalize(vW - uCam);
+    float ct = clamp(dot(-V, N), 0.0, 1.0);
+    float F = 0.172 + 0.828 * pow(1.0 - ct, 5.0);
+    const float ETA = 1.0 / 2.417;
+
+    vec3 disp;
+    disp.r = fire(V, N, ETA * (1.0 + uDisp), uK).r;
+    disp.g = fire(V, N, ETA, uK).g;
+    disp.b = fire(V, N, ETA * (1.0 - uDisp), uK).b;
+
+    vec3 col;
+    if (uMode < 0.5) {
+      // the interior: the far facets, seen through the stone
+      vec3 leak = env(refract(V, N, ETA)) * 0.45;
+      col = mix(leak, disp * 1.30, uReturn);
+      col *= 0.40 + 0.80 * pow(ct, 0.55);            // facet-to-facet contrast
+      col += vec3(0.95,0.97,1.00) * glint(N, V, normalize(vec3(-3.6,1.4,-2.6)), 140.0) * 0.5 * uReturn;
+      col += vec3(1.00,0.95,0.88) * glint(N, V, normalize(vec3(2.4,4.6,2.6)), 170.0) * 0.7 * uReturn;
+    } else {
+      // the surface: what it reflects, and what it hands back out of the pavilion
+      col  = envC(reflect(V, N)) * F * 1.45;
+      col += disp * (1.0 - F) * 1.75 * uReturn;
+      col += env(refract(V, N, ETA)) * (1.0 - F) * 0.34 * (1.0 - uReturn);
+      col += vec3(1.00,0.97,0.92) * glint(N, V, normalize(vec3( 2.4, 4.6, 2.6)), 430.0) * 2.6;
+      col += vec3(0.64,0.77,1.00) * glint(N, V, normalize(vec3(-3.6, 1.4,-2.6)), 370.0) * 1.8;
+      col += vec3(1.00,0.86,0.66) * glint(N, V, normalize(vec3( 2.6,-2.2, 2.4)), 300.0) * 1.0;
+      col += vec3(0.90,0.94,1.00) * glint(N, V, normalize(vec3(-1.4, 3.2, 3.4)), 520.0) * 1.5;
+      col += vec3(1.00,0.93,0.84) * glint(N, V, normalize(vec3( 3.4, 2.0,-2.2)), 260.0) * 0.8;
+    }
+    gl_FragColor = vec4(col * uFade, 1.0);
+  }`;
+
+const CUT = v => ({
+  table: 0.54, star: 0.55, lower: 0.79, girdle: 0.034, scale: 2.42,
+  crown: 0.128 + v * 0.062,
+  pavilion: 0.392 + v * 0.132
+});
+const DEPTH = v => { const c = CUT(v); return c.crown + c.girdle + c.pavilion; };
+
+CH.push({
+  no: 'X', title: 'Diamond',
+  text: 'The same four bonds, now large enough to hold. Cut it wrong and the light walks out of the bottom.',
+  dist: 6.1, pitch: 0.19, spin: 0.05, dust: .45, shadow: true,
+  control: {
+    name: 'Cut depth', value: 0.42,
+    fmt: v => { const d = DEPTH(v) * 100; return d.toFixed(1) + '% · ' + (d < 60.5 ? 'Shallow' : d > 67 ? 'Deep' : 'Brilliant'); }
+  },
+  build() {
+    const g = new THREE.Group();
+    const uni = () => ({
+      uEnv: { value: gemRoom() }, uCam: { value: new THREE.Vector3() },
+      uSide: { value: 1 }, uFade: { value: 1 }, uK: { value: 0.9 },
+      uDisp: { value: 0.052 }, uReturn: { value: 1 }, uMode: { value: 0 }
+    });
+    const inner = new THREE.ShaderMaterial({
+      uniforms: uni(), vertexShader: GEM_VERT, fragmentShader: GEM_FRAG,
+      side: THREE.BackSide, fog: false
+    });
+    inner.uniforms.uSide.value = -1;
+    const outer = new THREE.ShaderMaterial({
+      uniforms: uni(), vertexShader: GEM_VERT, fragmentShader: GEM_FRAG,
+      side: THREE.FrontSide, fog: false,
+      transparent: true, blending: THREE.AdditiveBlending, depthWrite: false
+    });
+    outer.uniforms.uMode.value = 1;
+
+    let geo = brilliant(CUT(0.47));
+    const back = new THREE.Mesh(geo, inner), front = new THREE.Mesh(geo, outer);
+    back.renderOrder = 0; front.renderOrder = 1;
+    g.add(back, front);
+
+    let d = 0.47, dT = 0.47;
+    const recut = () => {
+      const ng = brilliant(CUT(d));
+      back.geometry = front.geometry = ng;
+      geo.dispose();
+      geo = ng;
+      // light returns to the eye only near the ideal depth; outside it, it leaks
+      const r = Math.exp(-Math.pow((DEPTH(d) - 0.635) / 0.055, 2));
+      const k = CUT(d).pavilion / 0.5;               // pavilion steepness, for the bounce
+      inner.uniforms.uReturn.value = r; outer.uniforms.uReturn.value = r;
+      inner.uniforms.uK.value = k; outer.uniforms.uK.value = k;
+    };
+    recut();
+
+    return {
+      group: g,
+      control(v) { dT = v; },
+      update(dt) {
+        const n = approach(d, dT, 3.4, dt);
+        if (Math.abs(n - d) > 2e-4) { d = n; recut(); }
+        inner.uniforms.uCam.value.copy(camera.position);
+        outer.uniforms.uCam.value.copy(camera.position);
+      }
+    };
+  }
+});
+
+/* ---------------------------------------------------------------------------
+   AMORPHOUS CARBON
+   The one arrangement with no plan. Atoms are dropped at random and then
+   pushed apart until no two are closer than a bond length — which is what a
+   quench actually does — and bonded greedily nearest-first with a hard limit
+   of four. Nothing is repeated, nothing is periodic, and it still reads as
+   carbon because the local geometry is right even though the long range is not.
+   ------------------------------------------------------------------------- */
+CH.push({
+  title: 'Amorphous Carbon',
+  text: 'The same bonds with no plan behind them. Most of the carbon you have ever touched looks like this.',
+  dist: 8.4, pitch: 0.16, spin: 0.032, dust: .32,
+  control: {
+    name: 'Network density', value: 0.34,
+    fmt: v => (1.9 + v * 1.4).toFixed(2) + ' g/cm³ · ' + (v < 0.34 ? 'Graphitic' : v > 0.68 ? 'Tetrahedral' : 'Mixed')
+  },
+  build() {
+    const N = 470, R = 2.0, L = 0.36, r = rng(31337);
+    const P = [];
+    for (let i = 0; i < N; i++) {
+      let x, y, z, d;
+      do { x = r() * 2 - 1; y = r() * 2 - 1; z = r() * 2 - 1; d = x * x + y * y + z * z; } while (d > 1);
+      P.push(new THREE.Vector3(x * R, y * R, z * R));
+    }
+    // the quench: relax until nothing is closer than a bond
+    const v = new THREE.Vector3();
+    for (let it = 0; it < 18; it++) {
+      for (let i = 0; i < N; i++) for (let j = i + 1; j < N; j++) {
+        v.subVectors(P[j], P[i]);
+        const d = v.length();
+        if (d > L || d < 1e-6) continue;
+        v.multiplyScalar((L - d) * 0.5 / d);
+        P[j].add(v); P[i].sub(v);
+      }
+      for (const p of P) if (p.length() > R) p.multiplyScalar(R / p.length());
+    }
+    // every candidate bond once, shortest first
+    const cand = [];
+    for (let i = 0; i < N; i++) for (let j = i + 1; j < N; j++) {
+      const d = P[i].distanceTo(P[j]);
+      if (d < L * 1.50) cand.push([d, i, j]);
+    }
+    cand.sort((a, b) => a[0] - b[0]);
+
+    const g = new THREE.Group();
+    const aMat = carbon({ roughness: 0.42, envMapIntensity: 1.55 });
+    const bMat = new THREE.MeshBasicMaterial({
+      color: 0xffffff, vertexColors: true, transparent: true, opacity: 0.30, depthWrite: true
+    });
+    const atoms = new THREE.InstancedMesh(ball(2), aMat, N);
+    for (let i = 0; i < N; i++) atomAt(atoms, i, P[i], 0.088);
+    atoms.instanceMatrix.needsUpdate = true;
+    atoms.frustumCulled = false;
+    g.add(atoms);
+    const net = new THREE.Mesh(new THREE.BufferGeometry(), bMat);
+    net.frustumCulled = false;
+    g.add(net);
+
+    let cut = 0, cutT = 0;
+    const weave = () => {
+      const lim = L * (1.12 + cut * 0.30), deg = new Int8Array(N), bonds = [], used = new Set();
+      // two passes: everyone gets two bonds before anyone is allowed four
+      for (const cap of [2, 4]) for (const [d, i, j] of cand) {
+        if (d > lim) break;
+        const k = i * 1000 + j;
+        if (used.has(k) || deg[i] >= cap || deg[j] >= cap) continue;
+        deg[i]++; deg[j]++; bonds.push([i, j]); used.add(k);
+      }
+      // nothing survives a quench unbonded
+      for (let i = 0; i < N; i++) {
+        if (deg[i]) continue;
+        let best = -1, bd = 9;
+        for (let j = 0; j < N; j++) {
+          if (j === i || deg[j] > 3) continue;
+          const d = P[i].distanceTo(P[j]);
+          if (d < bd) { bd = d; best = j; }
+        }
+        if (best >= 0) { deg[i]++; deg[best]++; bonds.push([i, best]); }
+      }
+      const old = net.geometry;
+      net.geometry = filaments(bonds, P, { radius: 0.017, bow: 0.06 });
+      old.dispose();
+    };
+    weave();
+
+    return {
+      group: g,
+      control(x) { cutT = x; },
+      update(dt) {
+        const n = approach(cut, cutT, 3.2, dt);
+        if (Math.abs(n - cut) > 0.006) { cut = n; weave(); }
+      }
+    };
+  }
+});
+
+/* ===========================================================================
+   THE STATE GRAPH
+   The ten generators above are unchanged. What changes is that they are no
+   longer a sequence: each is a state carbon can be in, with named ways out.
+   ========================================================================= */
+const GRAPH = [
+  { id: 'ATOM',      bond: 'Unbonded',            depth: 0,
+    to: [['Add energy', 1, 'up'], ['Let it disperse', 2, 'right']] },
+  { id: 'EXCITED',   bond: 'Excited · sp³ ready',  depth: 1,
+    to: [['Let it cool', 0, 'left'], ['Let it disperse', 2, 'right']] },
+  { id: 'GAS',       bond: 'Free atoms',           depth: 1,
+    to: [['Let them find each other', 3, 'right'], ['Quench it', 10, 'down'], ['Condense to one atom', 0, 'left']] },
+  { id: 'CHAINS',    bond: 'Molecular',            depth: 2,
+    to: [['Flatten into a plane', 4, 'right'], ['Bond in three dimensions', 8, 'down'], ['Break the bonds', 2, 'left']] },
+  { id: 'GRAPHENE',  bond: 'sp² · planar',         depth: 3,
+    to: [['Stack the layers', 5, 'up'], ['Curl the sheet', 6, 'right'], ['Close the cage', 7, 'left'], ['Change the bonding', 8, 'down']] },
+  { id: 'GRAPHITE',  bond: 'sp² · stacked',        depth: 4,
+    to: [['Lift a single layer', 4, 'down'], ['Curl that layer', 6, 'right']] },
+  { id: 'NANOTUBE',  bond: 'sp² · rolled',         depth: 4,
+    to: [['Unroll it', 4, 'left'], ['Close it into a cage', 7, 'up']] },
+  { id: 'FULLERENE', bond: 'sp² · closed',         depth: 4,
+    to: [['Open the cage', 4, 'right'], ['Bond in three dimensions', 8, 'down']] },
+  { id: 'LATTICE',   bond: 'sp³ · tetrahedral',    depth: 3,
+    to: [['Grow the crystal', 9, 'down'], ['Return to the plane', 4, 'up']] },
+  { id: 'DIAMOND',   bond: 'sp³ · crystal',        depth: 4,
+    to: [['Look inside it', 8, 'up'], ['Break it apart', 2, 'left']] },
+  { id: 'AMORPHOUS', bond: 'Mixed sp² / sp³',      depth: 2,
+    to: [['Order it into a plane', 4, 'up'], ['Order it into tetrahedra', 8, 'right'], ['Melt it again', 2, 'left']] }
+];
+/* each destination wears its own structure, at 16px */
+const GLYPH = {
+  ATOM:      '<circle cx="8" cy="8" r="3.4"/>',
+  EXCITED:   '<circle cx="8" cy="8" r="2"/><circle cx="8" cy="8" r="6.2" opacity=".5"/>',
+  GAS:       '<circle cx="4" cy="5" r="1.4"/><circle cx="11.5" cy="4" r="1.4"/><circle cx="8" cy="12" r="1.4"/>',
+  CHAINS:    '<path d="M2 11l3-4 3 4 3-4 3 4"/>',
+  GRAPHENE:  '<path d="M8 2.2l5 2.9v5.8L8 13.8 3 10.9V5.1z"/>',
+  GRAPHITE:  '<path d="M2.5 4.6h11M2.5 8h11M2.5 11.4h11"/>',
+  NANOTUBE:  '<ellipse cx="8" cy="4.4" rx="5" ry="2.1"/><path d="M3 4.4v7.2a5 2.1 0 0 0 10 0V4.4"/>',
+  FULLERENE: '<circle cx="8" cy="8" r="6"/><path d="M8 4.4l2.5 1.8-.95 2.9h-3.1L5.5 6.2z"/>',
+  LATTICE:   '<path d="M8 2.4v5.4M8 7.8L3.2 11.6M8 7.8l4.8 3.8M3.2 11.6h9.6"/>',
+  DIAMOND:   '<path d="M3.6 6.2h8.8L8 13.6zM3.6 6.2l1.7-2.4h5.4l1.7 2.4"/>',
+  AMORPHOUS: '<path d="M3 10.4l3.2-4 3.9 2.1 2.9-4"/><circle cx="3" cy="10.4" r="1.1"/><circle cx="6.2" cy="6.4" r="1.1"/><circle cx="10.1" cy="8.5" r="1.1"/><circle cx="13" cy="4.5" r="1.1"/>'
+};
+GRAPH.forEach((m, i) => Object.assign(CH[i], m));
+/* what each state is, in three statements — the structure says the rest */
+[
+  ['Six protons', 'Four valence electrons', 'Bonds four ways'],
+  ['2s promoted to 2p', 'Four half-filled orbitals', 'Ready to bond'],
+  ['Unbonded atoms', 'Brownian motion', 'No structure'],
+  ['sp and sp² bonding', 'Chains, branches, rings', 'The first molecules'],
+  ['One atom thick', 'sp² bonded', '2D hexagonal lattice'],
+  ['Stacked graphene', '0.335 nm apart', 'Van der Waals only'],
+  ['Rolled graphene', 'Armchair (n,n)', 'Seamless cylinder'],
+  ['Sixty atoms', '12 pentagons, 20 hexagons', 'Closed cage'],
+  ['sp³ bonded', '109.47° tetrahedra', 'Diamond cubic'],
+  ['Refractive index 2.42', '57 facets', 'Hardest natural material'],
+  ['No long-range order', 'Mixed sp² and sp³', 'Soot, glassy carbon, ta-C']
+].forEach((sp, i) => { CH[i].spec = sp; });
+
+/* The carbon population itself. Any state can be asked for the atoms it is
+   currently made of: they are all instanced spheres on a shared geometry, so
+   one function reads every state without any of them knowing about it. */
+const MN = 260;
+function harvest(group, ch) {
+  group.updateMatrixWorld(true);
+  const inv = new THREE.Matrix4().copy(group.matrixWorld).invert();
+  const balls = Object.keys(_geo).filter(k => k[0] === 'b').map(k => _geo[k]);
+  const out = [];
+  let rad = 0.12;
+  const m = new THREE.Matrix4(), p = new THREE.Vector3(), q = new THREE.Quaternion(), sc = new THREE.Vector3();
+  group.traverse(o => {
+    if (!o.isInstancedMesh || balls.indexOf(o.geometry) < 0) return;
+    for (let i = 0; i < o.count; i++) {
+      o.getMatrixAt(i, m);
+      m.premultiply(o.matrixWorld).premultiply(inv);
+      m.decompose(p, q, sc);
+      if (sc.x < 0.012) continue;               // an atom that has not grown yet
+      out.push(p.clone());
+      if (sc.x > rad) rad = sc.x;
+    }
+  });
+  if (out.length) {
+    const pick = [];
+    for (let i = 0; i < MN; i++) pick.push(out[Math.floor(i * out.length / MN) % out.length].clone());
+    return { p: pick, r: rad };
+  }
+  // a state with no discrete atoms (the single atom, the cloud, the stone):
+  // sample the volume it occupies, so it disperses out of its own body
+  const box = new THREE.Box3().setFromObject(group);
+  const c = box.getCenter(new THREE.Vector3()), e = box.getSize(new THREE.Vector3()).multiplyScalar(0.42);
+  const r = rng(9137), pick = [];
+  for (let i = 0; i < MN; i++) {
+    let x, y, z, d;
+    do { x = r() * 2 - 1; y = r() * 2 - 1; z = r() * 2 - 1; d = x * x + y * y + z * z; } while (d > 1);
+    d = Math.pow(d, 0.28);                       // bias inward: denser at the core
+    pick.push(new THREE.Vector3(c.x + x * e.x * d, c.y + y * e.y * d, c.z + z * e.z * d));
+  }
+  return { p: pick, r: 0.16 };
+}
+
+/* ===========================================================================
+   THE ROOM
+   One renderer, one loop, one camera. Chapters are mounted into the same
+   pivot and the framing is cut to them in the dark.
+   ========================================================================= */
+
+const el = id => document.getElementById(id);
+const plaque = el('plaque'), ctrl = el('ctrl'), range = el('ctrlRange'), orbit = el('orbit');
+const rail = el('rail');
+const REDUCED = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+const rig = {
+  spin: 0, spinV: 0.05, auto: 0.05,
+  yaw: 0, yawT: 0, pitch: 0.16, pitchT: 0.16,
+  dist: 8, distT: 8, base: 8, zoom: 1, touched: false
+};
+let aspectK = 1, dustK = 1, dustT = 1, fogT = 0, shadowT = 0, shadowK = 0, fadeK = 0;
+const state = { i: -1, obj: null, age: 0 };
+let old = null, trans = null, camK = 1;
+const seen = new Set();
+
+function setControl(v, silent) {
+  const c = CH[state.i].control;
+  if (!c) return;
+  el('ctrlVal').textContent = c.fmt(v);
+  if (!silent && state.obj && state.obj.control) state.obj.control(v);
+}
+
+/* build a state and take its framing, without disturbing the one on screen */
+function mount(i) {
+  const ch = CH[i];
+  fogT = ch.fog || 0;
+  shadowT = ch.shadow ? 1 : 0;
+  dustT = ch.dust === undefined ? 0.4 : ch.dust;
+
+  const obj = ch.build();
+  pivot.add(obj.group);
+  fadeGroup(obj.group, 0);
+  state.i = i; state.obj = obj; state.age = 0;
+  seen.add(i);
+
+  rig.base = ch.dist; rig.auto = REDUCED ? 0 : ch.spin;
+  rig.zoom = 1; rig.touched = false; rig.yawT = rig.yaw;
+  rig.pitchT = ch.pitch;                       // eased, not cut: the camera follows the matter
+
+  el('chNo').textContent = ch.bond;
+  el('chTitle').textContent = ch.title;
+  el('chText').textContent = ch.text;
+  el('chSpec').textContent = (ch.spec || []).join('  ·  ');
+
+  if (ch.control) {
+    ctrl.hidden = false;
+    el('ctrlName').textContent = ch.control.name;
+    range.value = ch.control.value;
+    setControl(ch.control.value);
+    ctrl.classList.add('hint');
+  } else ctrl.hidden = true;
+
+  paintChoices(ch);
+  if (!trans) paintOrbit(ch);
+  paintRail();
+}
+
+function paintOrbit(ch) {
+  orbit.className = '';
+  orbit.innerHTML = '';
+  for (const [label, to, dir] of ch.to) {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'node ' + (dir || 'right');
+    b.innerHTML = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.2" ' +
+      'stroke-linecap="round" stroke-linejoin="round">' + (GLYPH[CH[to].id] || '') + '</svg>' +
+      '<span class="lab"></span>';
+    b.querySelector('.lab').textContent = label;
+    b.addEventListener('click', () => goTo(to, b));
+    orbit.appendChild(b);
+  }
+}
+
+function paintChoices(ch) {
+  const box = el('choices');
+  box.innerHTML = '';
+  for (const [label, to] of ch.to) {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.innerHTML = '<span class="k"></span><span></span>';
+    b.lastChild.textContent = label;
+    b.addEventListener('click', () => goTo(to));
+    box.appendChild(b);
+  }
+}
+
+/* the map: everything is on it, but only what has been reached is named */
+function open_() {
+  const o = new Set(seen);
+  for (const i of seen) for (const [, to] of CH[i].to) o.add(to);
+  return o;
+}
+function paintRail() {
+  const reach = open_();
+  [...rail.children].forEach((b, k) => {
+    b.classList.toggle('on', k === state.i);
+    b.classList.toggle('locked', !reach.has(k));
+    b.setAttribute('aria-current', k === state.i ? 'true' : 'false');
+  });
+}
+
+/* ---------------------------------------------------------------------------
+   TRANSFORMATION
+   The old structure lets go of its atoms, the atoms travel, the new structure
+   takes them. Nothing is cut to black; the population is continuous.
+   ------------------------------------------------------------------------- */
+const A_DUR = 0.34, M_DUR = 1.5, HAND = 0.70;
+let cloud = null, cCur = null, cLaunch = null, cDst = null, cR = [0.1, 0.1], cAx = null;
+
+/* The population is lifted first and the destination is built a moment later,
+   under cover of motion that has already started. Clicking is never followed
+   by a pause. */
+function goTo(i, node) {
+  if (trans || i === state.i || i < 0 || i >= CH.length || !open_().has(i)) return;
+  if (node) { node.classList.add('chosen'); orbit.classList.add('picking'); }
+
+  const src = harvest(state.obj.group, CH[state.i]);
+  cCur = src.p;
+  cLaunch = null; cDst = null;
+  cR = [src.r, src.r];
+  const r = rng(4242);
+  cAx = [];
+  for (let k = 0; k < MN; k++) {
+    const v = new THREE.Vector3(r() * 2 - 1, r() * 2 - 1, r() * 2 - 1);
+    if (v.lengthSq() < 1e-6) v.set(0, 1, 0);
+    cAx.push(v.normalize());
+  }
+  cloud = new THREE.InstancedMesh(ball(2), carbon({ roughness: 0.42, envMapIntensity: 1.55 }), MN);
+  cloud.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+  cloud.frustumCulled = false;
+  cloud.material.opacity = 0;
+  for (let k = 0; k < MN; k++) atomAt(cloud, k, cCur[k], src.r);
+  cloud.instanceMatrix.needsUpdate = true;
+  pivot.add(cloud);
+
+  old = state.obj;
+  plaque.classList.add('hid');
+  trans = { t: 0, to: i, from: state.i, built: false, tb: 0, named: false, hid: false };
+}
+
+const _p = new THREE.Vector3(), _arc = new THREE.Vector3();
+
+function stepTransition(dt) {
+  const T = (trans.t += dt);
+
+  if (old) {
+    fadeGroup(old.group, 1 - smoother(T / 0.40));
+    if (T >= 0.40) { disposeGroup(old.group); old = null; }
+  }
+  if (!trans.hid && T >= 0.24) { trans.hid = true; orbit.classList.add('busy'); }
+
+  if (!trans.built) {
+    // the atoms loosen and breathe outward while the destination is prepared
+    const k = smoother(T / A_DUR);
+    for (let i = 0; i < MN; i++) {
+      _p.copy(cCur[i]).multiplyScalar(1 + 0.055 * k).addScaledVector(cAx[i], 0.045 * k);
+      atomAt(cloud, i, _p, cR[0] * (1 + 0.10 * k));
+    }
+    cloud.instanceMatrix.needsUpdate = true;
+
+    if (T >= A_DUR * 0.42) {
+      // pick the rig up from wherever the camera actually is, so nothing cuts
+      const cd = camera.position.length();
+      if (cd > 0.4) {
+        rig.dist = Math.max(1.5, cd);
+        rig.pitch = Math.asin(clamp(camera.position.y / cd, -1, 1));
+        rig['dist$v'] = 0; rig['pitch$v'] = 0;
+      }
+      const cameFrom = trans.from;
+      mount(trans.to);
+      flashEdge(cameFrom, trans.to);
+      if (state.obj.update) state.obj.update(1 / 60, performance.now() / 1000, 0);
+      const dst = harvest(state.obj.group, CH[trans.to]);
+      cDst = dst.p; cR[1] = dst.r;
+      cLaunch = [];
+      const m = new THREE.Matrix4(), q = new THREE.Quaternion(), sc = new THREE.Vector3();
+      for (let i = 0; i < MN; i++) {
+        cloud.getMatrixAt(i, m);
+        const v = new THREE.Vector3();
+        m.decompose(v, q, sc);
+        cLaunch.push(v);
+      }
+      trans.built = true;
+      trans.tb = trans.t;
+    }
+  } else {
+    const k = smoother((T - trans.tb) / M_DUR);
+    for (let i = 0; i < MN; i++) {
+      const a = cLaunch[i], b = cDst[i];
+      const ki = smoother((k - (i / MN) * 0.20) / 0.80);
+      _p.lerpVectors(a, b, ki);
+      _arc.copy(cAx[i]).multiplyScalar(Math.sin(Math.PI * ki) * a.distanceTo(b) * 0.10);
+      _p.add(_arc);
+      atomAt(cloud, i, _p, lerp(cR[0], cR[1], ki) * (1 + 0.20 * Math.sin(Math.PI * ki)));
+    }
+    cloud.instanceMatrix.needsUpdate = true;
+
+    // the real structure takes over from underneath, as the cloud thins
+    const hand = trans.tb + M_DUR * HAND;
+    fadeGroup(state.obj.group, smoother((T - hand) / (M_DUR * 0.40)));
+    cloud.material.opacity = 1 - smoother((T - hand) / (M_DUR * 0.34));
+
+    if (!trans.named && T >= trans.tb + M_DUR * 0.42) {
+      trans.named = true;
+      plaque.classList.remove('hid');
+    }
+    if (T >= trans.tb + M_DUR + 0.18) {
+      disposeGroup(cloud); cloud = null;
+      fadeGroup(state.obj.group, 1);
+      trans = null;
+      paintOrbit(CH[state.i]);
+    }
+  }
+  if (trans && cloud && !trans.built) cloud.material.opacity = smoother(T / 0.18);
+}
+
+/* ---------------------------------------------------------------------------
+   THE MAP
+   A diagram of where carbon can go, drawn once. It reports; it does not drive.
+   Only states already reached can be clicked, and only to go back to them —
+   everything new is reached by acting on the structure itself.
+   ------------------------------------------------------------------------- */
+const TREE = [
+  [0, 0, 0, -1], [1, 1, 1, 0], [2, 2, 1, 0], [10, 3, 2, 2], [3, 4, 2, 2],
+  [4, 5, 3, 3], [5, 6, 4, 4], [6, 7, 4, 4], [7, 8, 4, 4], [8, 9, 3, 3], [9, 10, 4, 8]
+];
+const POS = {}, edgeEl = {}, nodeEl = [];
+TREE.forEach(([i, row, d, par]) => { POS[i] = { x: 8 + d * 13, y: 12 + row * 25, par: par }; });
+{
+  const NS = 'http://www.w3.org/2000/svg';
+  const svg = document.createElementNS(NS, 'svg');
+  svg.setAttribute('viewBox', '0 0 170 275');
+  for (const [i] of TREE) {
+    const P = POS[i];
+    if (P.par < 0) continue;
+    const Q = POS[P.par];
+    const e = document.createElementNS(NS, 'path');
+    e.setAttribute('d', 'M ' + Q.x + ' ' + (Q.y + 7) + ' V ' + (P.y - 6) +
+      ' Q ' + Q.x + ' ' + P.y + ' ' + (Q.x + 6) + ' ' + P.y + ' H ' + (P.x - 6));
+    svg.appendChild(e);
+    edgeEl[i] = e;
+  }
+  rail.appendChild(svg);
+  for (const [i] of TREE) {
+    const P = POS[i];
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'node';
+    b.style.left = (P.x - 3.5) + 'px';
+    b.style.top = P.y + 'px';
+    b.innerHTML = '<i class="dot"></i><span class="n"></span>';
+    b.lastChild.textContent = CH[i].id;
+    b.setAttribute('aria-label', CH[i].title);
+    b.addEventListener('click', () => { if (seen.has(i)) goTo(i); });
+    rail.appendChild(b);
+    nodeEl[i] = b;
+  }
+}
+
+function paintRail() {
+  const near = new Set();
+  for (const [, to] of CH[state.i].to) near.add(to);
+  for (const [i] of TREE) {
+    const b = nodeEl[i];
+    b.className = 'node' +
+      (seen.has(i) ? ' seen' : near.has(i) ? ' near' : '') +
+      (seen.has(i) && i !== state.i ? ' link' : '') +
+      (i === state.i ? ' on' : '');
+    b.setAttribute('aria-current', i === state.i ? 'true' : 'false');
+  }
+  for (const k in edgeEl) edgeEl[k].classList.remove('on');
+  let c = state.i, guard = 0;
+  while (POS[c] && POS[c].par >= 0 && guard++ < 24) { edgeEl[c].classList.add('on'); c = POS[c].par; }
+}
+
+/* the branch just travelled lights up, so the move is legible on the map */
+function flashEdge(from, to) {
+  const e = (POS[to] && POS[to].par === from) ? edgeEl[to]
+          : (POS[from] && POS[from].par === to) ? edgeEl[from] : null;
+  if (!e) return;
+  e.classList.remove('flash');
+  void e.getBoundingClientRect();
+  e.classList.add('flash');
+  setTimeout(() => e.classList.remove('flash'), 1600);
+}
+
+range.addEventListener('input', () => { ctrl.classList.remove('hint'); setControl(parseFloat(range.value)); });
+
+/* turning the specimen */
+addEventListener('pointerdown', e => {
+  if (e.button !== 0 || (e.target.closest && e.target.closest('#rail, .ctrl'))) return;
+  rig.drag = true; rig.px = e.clientX; rig.py = e.clientY;
+  document.body.classList.add('turning');
+});
+addEventListener('pointermove', e => {
+  if (!rig.drag) return;
+  rig.yawT -= (e.clientX - rig.px) * 0.0055;
+  rig.pitchT = clamp(rig.pitchT + (e.clientY - rig.py) * 0.0038, -0.6, 1.15);
+  rig.px = e.clientX; rig.py = e.clientY; rig.touched = true;
+});
+addEventListener('pointerup', () => { rig.drag = false; document.body.classList.remove('turning'); reveal(); });
+let shown = false, born = 0;
+function reveal() { if (!shown) { shown = true; document.body.classList.add('revealed'); } }
+addEventListener('wheel', e => {
+  if (e.target.closest && e.target.closest('#rail, .ctrl')) return;
+  e.preventDefault();
+  rig.zoom = clamp(rig.zoom * Math.exp(e.deltaY * 0.0008), 0.42, 1.9);
+  rig.touched = true;
+}, { passive: false });
+
+let pinch0 = 0, zoom0 = 1;
+addEventListener('touchstart', e => {
+  if (e.touches.length === 2) {
+    pinch0 = Math.hypot(e.touches[0].clientX - e.touches[1].clientX,
+                        e.touches[0].clientY - e.touches[1].clientY) || 1;
+    zoom0 = rig.zoom;
+  }
+}, { passive: true });
+addEventListener('touchmove', e => {
+  if (e.touches.length !== 2) return;
+  const d = Math.hypot(e.touches[0].clientX - e.touches[1].clientX,
+                       e.touches[0].clientY - e.touches[1].clientY);
+  rig.zoom = clamp(zoom0 * pinch0 / d, 0.42, 1.9);
+  rig.touched = true;
+}, { passive: true });
+
+addEventListener('keydown', e => {
+  if (e.target === range && e.key.startsWith('Arrow')) return;
+  reveal();
+  const dir = { ArrowUp: 'up', ArrowDown: 'down', ArrowLeft: 'left', ArrowRight: 'right' }[e.key];
+  if (dir) {
+    e.preventDefault();
+    const c = CH[state.i].to.find(x => x[2] === dir);
+    if (c) goTo(c[1], orbit.querySelector('.' + dir));
+  }
+});
+
+function resize() {
+  const w = innerWidth, h = innerHeight;
+  renderer.setSize(w, h, false);
+  camera.aspect = w / h;
+  camera.updateProjectionMatrix();
+  // a tall window needs the object further away to keep the same air around it
+  aspectK = w / h < 1 ? 1 + (1 - w / h) * 0.6 : 1;
+  dust.material.uniforms.uPix.value = renderer.getPixelRatio();
+}
+addEventListener('resize', resize);
+
+/* ---------------------------------------------------------------------------
+   THE LOOP
+   ------------------------------------------------------------------------- */
+let last = performance.now();
+function frame(now) {
+  requestAnimationFrame(frame);
+  const dt = Math.min(0.05, (now - last) / 1000), t = now / 1000;
+  last = now;
+  if (!born) born = t;
+  if (!shown && t - born > 6) reveal();
+
+  if (!state.obj) return;
+  state.age += dt;
+  if (state.obj.update) state.obj.update(dt, t, state.age);
+
+  // the transformation is stepped after each state has written its own materials
+  if (trans) stepTransition(dt);
+  fadeK = trans ? 0.55 : 1;
+
+  dust.material.uniforms.uTime.value = t;
+  dust.material.uniforms.uFade.value = dustK;
+  shadow.material.opacity = 0.75 * shadowK;
+
+  // the specimen's own turn, easing back to its pace after the viewer lets go
+  rig.spinV = approach(rig.spinV, rig.drag ? 0 : rig.auto, 0.9, dt);
+  rig.spin += rig.spinV * dt;
+  rig.distT = rig.base * aspectK * rig.zoom;
+  spring(rig, 'yaw', rig.yawT, rig.drag ? 11 : 4.6, dt);
+  spring(rig, 'pitch', rig.pitchT, rig.drag ? 11 : 3.8, dt);
+  spring(rig, 'dist', rig.distT, 2.9, dt);
+  pivot.rotation.y = rig.spin + rig.yaw;
+
+  dustK = approach(dustK, dustT, 1.8, dt);
+  shadowK = approach(shadowK, shadowT, 2.2, dt);
+  scene.fog.density = approach(scene.fog.density, fogT, 2.0, dt);
+  shadow.visible = shadowK > 0.004;
+
+  const over = state.obj.camera ? state.obj.camera(t) : null;
+  const b = REDUCED ? 0 : 1;
+  camK = approach(camK, trans ? 0 : 1, 1.7, dt);
+  const fov = 28 + (((over && over.fov) || 28) - 28) * camK;
+  if (Math.abs(camera.fov - fov) > 0.02) { camera.fov = fov; camera.updateProjectionMatrix(); }
+  if (over && camK > 0.995) {
+    camera.position.copy(over.pos);
+    camera.position.x += Math.sin(t * 0.047) * 0.04 * b;
+    camera.lookAt(over.look);
+  } else if (over) {
+    const d0 = rig.dist * (1 + Math.sin(t * 0.083) * 0.016 * b), p0 = rig.pitch;
+    T.a.set(Math.sin(t * 0.047) * 0.10 * b, d0 * Math.sin(p0) + 0.06, d0 * Math.cos(p0));
+    camera.position.lerpVectors(T.a, over.pos, camK);
+    T.b.set(0, 0, 0).lerp(over.look, camK);
+    camera.lookAt(T.b);
+  } else {
+    // microscopic camera life: a breath of dolly, a drift in height, a slight sway
+    const d = rig.dist * (1 + Math.sin(t * 0.083) * 0.016 * b);
+    const p = rig.pitch + Math.sin(t * 0.061) * 0.022 * b;
+    camera.position.set(
+      Math.sin(t * 0.047) * 0.10 * b,
+      d * Math.sin(p) + 0.06 + Math.sin(t * 0.071) * 0.03 * b,
+      d * Math.cos(p)
+    );
+    camera.lookAt(0, Math.sin(t * 0.053) * 0.02 * b, 0);
+  }
+
+  renderer.render(scene, camera);
+}
+
+resize();
+// let the first paint land before the field is solved, so the room is black
+// rather than blank while it happens
+requestAnimationFrame(() => requestAnimationFrame(() => {
+  mount(0);
+  fadeGroup(state.obj.group, 1);
+  paintRail();
+  fadeK = 1;
+  el('wait').classList.add('gone');
+  document.body.classList.add('ready');
+  requestAnimationFrame(frame);
+}));
+
+})();
+</script>
+</body>
+</html>
